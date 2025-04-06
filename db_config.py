@@ -6,7 +6,7 @@ def get_connection():
         host="localhost",
         user="root",
         password="",
-        database="db_laboras",
+        database="1_laboratorinis_kp",
         port=3306 
     )
 # http://localhost:5000/

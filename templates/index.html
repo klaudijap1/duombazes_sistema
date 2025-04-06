@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Universiteto DB sistema</title>
+  <title>Prekių DB sistema</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
@@ -13,7 +13,7 @@
     }
     
     body {
-      background-color: #f5f7fa;
+      background: #ffffff;
       color: #333;
       min-height: 100vh;
       display: flex;
@@ -26,83 +26,88 @@
     
     .container {
       max-width: 800px;
-      background-color: white;
-      border-radius: 10px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
       padding: 40px;
       margin: 20px;
       width: 100%;
+      border: 1px solid rgba(0, 0, 0, 0.1);
     }
     
     h1 {
       color: #2c3e50;
       margin-bottom: 30px;
-      font-size: 2.2rem;
-      border-bottom: 2px solid #3498db;
-      padding-bottom: 15px;
+      font-size: 2.5rem;
+      font-weight: 600;
+    }
+    
+    .description {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 40px;
+      font-size: 1.1rem;
     }
     
     .btn {
       display: inline-block;
-      background-color: #3498db;
+      background: #3498db;
       color: white;
-      padding: 12px 25px;
+      padding: 15px 30px;
       text-decoration: none;
-      border-radius: 5px;
+      border-radius: 50px;
       font-weight: 600;
       margin: 10px;
       transition: all 0.3s ease;
+      border: none;
     }
     
     .btn:hover {
-      background-color: #2980b9;
-      transform: translateY(-2px);
-      box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
-    }
-    
-    .btn-secondary {
-      background-color: #2ecc71;
-    }
-    
-    .btn-secondary:hover {
-      background-color: #27ae60;
-    }
-    
-    .description {
-      color: #555;
-      line-height: 1.6;
-      margin-bottom: 30px;
-    }
-    
-    .footer {
-      margin-top: 50px;
-      color: #7f8c8d;
-      font-size: 0.9rem;
+      background: #2980b9;
+      transform: translateY(-3px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     }
     
     .button-container {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 15px;
+      gap: 20px;
+    }
+
+    .logo {
+      font-size: 3rem;
+      margin-bottom: 20px;
+      color: #3498db;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 30px 20px;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .btn {
+        padding: 12px 25px;
+        font-size: 0.9rem;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Universiteto DB sistema</h1>
+    <div class="logo">🛍️</div>
+    <h1>Prekių DB sistema</h1>
     
     <p class="description">
-      Lentelių peržiūra ir pildymas
+      Moderni prekių valdymo sistema su patogia sąsaja
     </p>
     
     <div class="button-container">
-      <a href="/universitetai" class="btn">Peržiūrėti universitetų duomenis</a>
-      <a href="/forma-f2" class="btn btn-secondary">Forma F2</a>
-    </div>
-    
-    <div class="footer">
-      &copy; 2024 KTU duomenų bazių laboratorinis darbas
+      <a href="/prekes" class="btn">Peržiūrėti prekių duomenis</a>
     </div>
   </div>
 </body>

@@ -16,26 +16,48 @@ def handle_options(path):
 def index():
     return render_template('index.html')
 
-@app.route('/universitetai')
-def universitetai():
-    return render_template('universitetai.html')
+@app.route('/prekes')
+def prekes():
+    return render_template('prekes.html')
 
-@app.route('/universitetai/data')
-def get_universitetai():
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM universitetai")
-    rows = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return jsonify(rows)
+@app.route('/prekes/data')
+def get_prekes():
+    try:
+        print("Attempting to fetch prekes data...")
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM prekes")
+        rows = cursor.fetchall()
+        print(f"Fetched {len(rows)} rows from database")
+        
+        # Convert the rows to a list of dictionaries with proper value handling
+        result = []
+        for row in rows:
+            item = {
+                'id_Preke': row[0],
+                'Pavadinimas': row[1],
+                'Aprasymas': row[2],
+                'Kaina': str(row[3]),  # Convert Decimal to string
+                'Busena': row[4]
+            }
+            result.append(item)
+        
+        print("Processed data:", result)
+        cursor.close()
+        conn.close()
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error in get_prekes: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/universitetai/add')
-def add_universitetas_form():
-    return render_template('add_universitetas.html')
+@app.route('/prekes/add')
+def add_preke_form():
+    return render_template('add_preke.html')
 
-@app.route('/universitetai/insert', methods=['POST'])
-def insert_universitetas():
+@app.route('/prekes/insert', methods=['POST'])
+def insert_preke():
     try:
         data = request.get_json()
         if not data:
@@ -44,25 +66,21 @@ def insert_universitetas():
         conn = get_connection()
         cursor = conn.cursor()
         
-        # The database will auto-increment the ID
         cursor.execute("""
-            INSERT INTO universitetai (
-                pavadinimas, salis, miestas,
-                ikurimo_data, studentu_skaicius, darbuotoju_skaicius, fakultetu_skaicius
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO prekes (
+                Pavadinimas, Aprasymas, Kaina, Busena
+            ) VALUES (%s, %s, %s, %s)
         """, (
-            data['pavadinimas'], data['salis'], data['miestas'],
-            data['ikurimo_data'], data['studentu_skaicius'], data['darbuotoju_skaicius'], data['fakultetu_skaicius']
+            data['pavadinimas'], data['aprasymas'], data['kaina'], data['busena']
         ))
         
         conn.commit()
         
-        # Get the last inserted ID for the message
         last_id = cursor.lastrowid
         
         cursor.close()
         conn.close()
-        return jsonify({'message': f'Universitetas sėkmingai pridėtas! (ID: {last_id})'})
+        return jsonify({'message': f'Prekė sėkmingai pridėta! (ID: {last_id})'})
         
     except Exception as e:
         print(f"Error in insert: {str(e)}")
@@ -70,19 +88,18 @@ def insert_universitetas():
         traceback.print_exc()
         return jsonify({'message': f'Server error: {str(e)}'}), 500
 
-@app.route('/universitetai/delete/<id>', methods=['DELETE'])
-def delete_universitetas(id):
+@app.route('/prekes/delete/<id>', methods=['DELETE'])
+def delete_preke(id):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM universitetai WHERE id_universitetas = %s", (id,))
+    cursor.execute("DELETE FROM prekes WHERE id_Preke = %s", (id,))
     conn.commit()
     cursor.close()
     conn.close()
     return jsonify({'message': 'Deleted successfully'})
 
-@app.route('/universitetai/update/<id>', methods=['PUT', 'OPTIONS'])
-def update_universitetas(id):
-    # Handle OPTIONS request for CORS preflight
+@app.route('/prekes/update/<id>', methods=['PUT', 'OPTIONS'])
+def update_preke(id):
     if request.method == 'OPTIONS':
         return '', 204
         
@@ -91,7 +108,6 @@ def update_universitetas(id):
         print(f"Request data: {request.data}")
         print(f"Request content type: {request.content_type}")
         
-        # Get the JSON data
         data = request.get_json()
         print(f"Parsed JSON data: {data}")
         
@@ -99,35 +115,28 @@ def update_universitetas(id):
             print("No data received")
             return jsonify({'message': 'No JSON data received'}), 400
         
-        # Connect to database
         conn = None
         cursor = None
         try:
             conn = get_connection()
             cursor = conn.cursor()
             
-            # Get current data
-            cursor.execute("SELECT * FROM universitetai WHERE id_universitetas = %s", (id,))
+            cursor.execute("SELECT * FROM prekes WHERE id_Preke = %s", (id,))
             current_data = cursor.fetchone()
             
             if not current_data:
-                print(f"University with ID {id} not found")
-                return jsonify({'message': 'University not found'}), 404
+                print(f"Preke with ID {id} not found")
+                return jsonify({'message': 'Preke not found'}), 404
                 
-            # Make sure we only accept valid field names
             valid_fields = [
-                'pavadinimas', 'salis', 'miestas', 'ikurimo_data', 
-                'studentu_skaicius', 'darbuotoju_skaicius', 'fakultetu_skaicius'
+                'Pavadinimas', 'Aprasymas', 'Kaina', 'Busena'
             ]
             
-            # Prepare update statement
             update_fields = []
             update_values = []
             
-            # Process each field in the request
             for field, value in data.items():
                 if field in valid_fields and value and value.strip():
-                    # Use backticks to properly escape field names
                     update_fields.append(f"`{field}` = %s")
                     update_values.append(value)
             
@@ -135,11 +144,9 @@ def update_universitetas(id):
                 print("No fields to update")
                 return jsonify({'message': 'No fields to update'}), 400
                 
-            # Add ID for the WHERE clause
             update_values.append(id)
             
-            # Execute the update
-            query = f"UPDATE universitetai SET {', '.join(update_fields)} WHERE id_universitetas = %s"
+            query = f"UPDATE prekes SET {', '.join(update_fields)} WHERE id_Preke = %s"
             print(f"Executing query: {query}")
             print(f"With values: {update_values}")
             
@@ -154,7 +161,6 @@ def update_universitetas(id):
             else:
                 return jsonify({'message': 'No changes made'}), 200
         finally:
-            # Always close cursor and connection
             if cursor:
                 cursor.close()
             if conn:

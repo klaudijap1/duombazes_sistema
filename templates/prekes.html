@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Prekių sąrašas</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background: #ffffff;
+      color: #333;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    h1 {
+      color: #2c3e50;
+      font-size: 1.8rem;
+      font-weight: 600;
+    }
+    
+    .btn {
+      background: #3498db;
+      color: white;
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      border: none;
+      transition: all 0.3s;
+    }
+    
+    .btn:hover {
+      background: #2980b9;
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: #ffffff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+    }
+    
+    th, td {
+      padding: 15px;
+      text-align: left;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+    
+    th {
+      background: #f8f9fa;
+      font-weight: 600;
+      color: #2c3e50;
+    }
+    
+    tr:hover {
+      background: #f8f9fa;
+    }
+    
+    .btn-edit, .btn-delete {
+      padding: 8px 15px;
+      border-radius: 50px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s;
+    }
+    
+    .btn-edit {
+      background: #3498db;
+      color: white;
+      margin-right: 10px;
+    }
+    
+    .btn-delete {
+      background: #e74c3c;
+      color: white;
+    }
+    
+    .btn-edit:hover, .btn-delete:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-edit:hover {
+      background: #2980b9;
+    }
+    
+    .btn-delete:hover {
+      background: #c0392b;
+    }
+    
+    .no-data {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+      font-size: 1.1rem;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 20px;
+      }
+      
+      header {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      header a {
+        margin-top: 10px;
+      }
+      
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Prekių sąrašas</h1>
+      <a href="/prekes/add" class="btn">Pridėti naują prekę</a>
+    </header>
+    
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Pavadinimas</th>
+          <th>Aprašymas</th>
+          <th>Kaina</th>
+          <th>Būsena</th>
+          <th>Veiksmai</th>
+        </tr>
+      </thead>
+      <tbody id="prekesTable">
+        <!-- Data will be loaded here -->
+      </tbody>
+    </table>
+  </div>
+
+  <script src="{{ url_for('static', filename='prekes.js') }}"></script>
+</body>
+</html> 
