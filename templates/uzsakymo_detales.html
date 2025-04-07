@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Užsakymo Detalės</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: rgba(147, 112, 219, 0.1);
+        }
+        .table-container {
+            margin-top: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .form-container {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background-color: #f8f9fa;
+        }
+        .hidden {
+            display: none;
+        }
+        .btn-group-sm > .btn, .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            border-radius: 20px;
+            margin: 0 2px;
+        }
+        .btn-primary {
+            background-color: #9370DB;
+            border-color: #9370DB;
+            border-radius: 20px;
+        }
+        .btn-primary:hover {
+            background-color: #7B68EE;
+            border-color: #7B68EE;
+        }
+        .btn-warning {
+            background-color: #4169E1;
+            border-color: #4169E1;
+            color: white;
+            border-radius: 20px;
+        }
+        .btn-warning:hover {
+            background-color: #1E90FF;
+            border-color: #1E90FF;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #DC143C;
+            border-color: #DC143C;
+            border-radius: 20px;
+        }
+        .btn-danger:hover {
+            background-color: #B22222;
+            border-color: #B22222;
+        }
+        .table {
+            margin-bottom: 0;
+        }
+        .table thead th {
+            background-color: #9370DB;
+            color: white;
+            border: none;
+        }
+        .table tbody tr:hover {
+            background-color: rgba(147, 112, 219, 0.05);
+        }
+        .btn i {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4">Užsakymo Detalės</h1>
+        
+        <div class="mb-3">
+            <a href="/" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Grįžti atgal</a>
+            <button class="btn btn-primary" onclick="showAddForm()"><i class="fas fa-plus"></i> Pridėti naują užsakymo detalę</button>
+        </div>
+
+        <div class="table-container">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Prekės pavadinimas</th>
+                        <th>Paslaugos pavadinimas</th>
+                        <th>Dovanų čekis</th>
+                        <th>Vieneto kaina</th>
+                        <th>Užsakymo data</th>
+                        <th>Kaina</th>
+                        <th>Būsena</th>
+                        <th>Kliento ID</th>
+                        <th>Veiksmai</th>
+                    </tr>
+                </thead>
+                <tbody id="orderDetailsTableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Add/Edit Form -->
+        <div id="addEditForm" class="form-container hidden">
+            <h2 id="formTitle">Pridėti naują užsakymo detalę</h2>
+            <form id="orderDetailForm">
+                <input type="hidden" id="detailId">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="prekes_pavadinimas" class="form-label">Prekės pavadinimas</label>
+                            <input type="text" class="form-control" id="prekes_pavadinimas">
+                        </div>
+                        <div class="mb-3">
+                            <label for="paslaugos_pavadinimas" class="form-label">Paslaugos pavadinimas</label>
+                            <input type="text" class="form-control" id="paslaugos_pavadinimas">
+                        </div>
+                        <div class="mb-3">
+                            <label for="dovanu_cekis" class="form-label">Dovanų čekis</label>
+                            <input type="text" class="form-control" id="dovanu_cekis">
+                        </div>
+                        <div class="mb-3">
+                            <label for="vieneto_kaina" class="form-label">Vieneto kaina</label>
+                            <input type="number" step="0.01" class="form-control" id="vieneto_kaina">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="uzsakymo_data" class="form-label">Užsakymo data</label>
+                            <input type="date" class="form-control" id="uzsakymo_data">
+                        </div>
+                        <div class="mb-3">
+                            <label for="kaina" class="form-label">Kaina</label>
+                            <input type="number" step="0.01" class="form-control" id="kaina">
+                        </div>
+                        <div class="mb-3">
+                            <label for="busena" class="form-label">Būsena</label>
+                            <input type="text" class="form-control" id="busena">
+                        </div>
+                        <div class="mb-3">
+                            <label for="fk_Klientai_id_Klientas" class="form-label">Kliento ID</label>
+                            <input type="number" class="form-control" id="fk_Klientai_id_Klientas" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" onclick="hideForm()"><i class="fas fa-times"></i> Atšaukti</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Išsaugoti</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Load order details when page loads
+        document.addEventListener('DOMContentLoaded', loadOrderDetails);
+
+        function loadOrderDetails() {
+            fetch('/uzsakymo_detales/data')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Received data:', data); // Debug log
+                    const tbody = document.getElementById('orderDetailsTableBody');
+                    tbody.innerHTML = '';
+                    data.forEach(detail => {
+                        console.log('Processing detail:', detail); // Debug log
+                        const row = document.createElement('tr');
+                        row.setAttribute('data-id', detail.id_Uzsakymo);
+                        row.innerHTML = `
+                            <td>${detail.id_Uzsakymo}</td>
+                            <td>${detail.Prekes_pavadinimas || '-'}</td>
+                            <td>${detail.Paslaugos_pavadinimas || '-'}</td>
+                            <td>${detail.Dovanu_cekis || '-'}</td>
+                            <td>${detail.Vieneto_kaina ? parseFloat(detail.Vieneto_kaina).toFixed(2) : '0.00'}</td>
+                            <td>${detail.Uzsakymo_data ? new Date(detail.Uzsakymo_data).toLocaleDateString('lt-LT') : '-'}</td>
+                            <td>${detail.Kaina ? parseFloat(detail.Kaina).toFixed(2) : '0.00'}</td>
+                            <td>${detail.Busena || '-'}</td>
+                            <td>${detail.fk_Klientai_id_Klientas}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-warning" onclick="editOrderDetail(${detail.id_Uzsakymo})">
+                                        <i class="fas fa-edit"></i> Redaguoti
+                                    </button>
+                                    <button class="btn btn-danger" onclick="deleteOrderDetail(${detail.id_Uzsakymo})">
+                                        <i class="fas fa-trash"></i> Ištrinti
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading data:', error);
+                    alert('Klaida įkeliant duomenis. Patikrinkite konsolę daugiau informacijos.');
+                });
+        }
+
+        function showAddForm() {
+            document.getElementById('formTitle').textContent = 'Pridėti naują užsakymo detalę';
+            document.getElementById('detailId').value = '';
+            document.getElementById('orderDetailForm').reset();
+            document.getElementById('addEditForm').classList.remove('hidden');
+        }
+
+        function editOrderDetail(id) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            if (!row) {
+                console.error(`Row with id ${id} not found`);
+                return;
+            }
+
+            const cells = row.cells;
+            // Skip first cell (ID) and last cell (actions)
+            for (let i = 1; i < cells.length - 1; i++) {
+                const cell = cells[i];
+                const currentValue = cell.textContent.trim();
+                
+                // Special handling for date field (index 5)
+                if (i === 5) {
+                    // Convert date from DD.MM.YYYY to YYYY-MM-DD
+                    const dateParts = currentValue.split('.');
+                    if (dateParts.length === 3) {
+                        const formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+                        cell.innerHTML = `<input type="date" class="form-control" value="${formattedDate}">`;
+                    } else {
+                        cell.innerHTML = `<input type="date" class="form-control">`;
+                    }
+                }
+                // Special handling for numeric fields (indices 4 and 6)
+                else if (i === 4 || i === 6) {
+                    cell.innerHTML = `<input type="number" step="0.01" class="form-control" value="${currentValue.replace(',', '.')}">`;
+                }
+                // Special handling for client ID (index 8)
+                else if (i === 8) {
+                    cell.innerHTML = `<input type="number" class="form-control" value="${currentValue}">`;
+                }
+                // Default text input for other fields
+                else {
+                    cell.innerHTML = `<input type="text" class="form-control" value="${currentValue}">`;
+                }
+            }
+
+            // Hide edit button and show save and cancel buttons for this specific row
+            const actionCell = cells[cells.length - 1];
+            actionCell.innerHTML = `
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-success" onclick="saveOrderDetailEdit(${id})">
+                        <i class="fas fa-save"></i> Išsaugoti
+                    </button>
+                    <button class="btn btn-secondary" onclick="cancelOrderDetailEdit(${id})">
+                        <i class="fas fa-times"></i> Atšaukti
+                    </button>
+                </div>
+            `;
+        }
+
+        function cancelOrderDetailEdit(id) {
+            loadOrderDetails(); // Reload the table to cancel editing
+        }
+
+        function saveOrderDetailEdit(id) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            if (!row) {
+                console.error(`Row with id ${id} not found`);
+                return;
+            }
+
+            const cells = row.cells;
+            const updatedData = {
+                Prekes_pavadinimas: cells[1].querySelector('input').value,
+                Paslaugos_pavadinimas: cells[2].querySelector('input').value,
+                Dovanu_cekis: cells[3].querySelector('input').value,
+                Vieneto_kaina: cells[4].querySelector('input').value,
+                Uzsakymo_data: cells[5].querySelector('input').value,
+                Kaina: cells[6].querySelector('input').value,
+                Busena: cells[7].querySelector('input').value,
+                fk_Klientai_id_Klientas: cells[8].querySelector('input').value
+            };
+
+            console.log('Sending update data:', updatedData); // Debug log
+
+            fetch(`/uzsakymo_detales/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updatedData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        try {
+                            const json = JSON.parse(text);
+                            throw new Error(json.error || 'Failed to update');
+                        } catch (e) {
+                            throw new Error(text || 'Failed to update');
+                        }
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Update response:', data); // Debug log
+                loadOrderDetails(); // Refresh the table
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Klaida atnaujinant užsakymo detalę: ' + error.message);
+            });
+        }
+
+        function hideForm() {
+            document.getElementById('addEditForm').classList.add('hidden');
+        }
+
+        function deleteOrderDetail(id) {
+            if (confirm('Ar tikrai norite ištrinti šią užsakymo detalę?')) {
+                fetch(`/uzsakymo_detales/delete/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        loadOrderDetails();
+                    } else {
+                        throw new Error('Failed to delete detail');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }
+
+        document.getElementById('orderDetailForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const detailId = document.getElementById('detailId').value;
+            const data = {
+                Prekes_pavadinimas: document.getElementById('prekes_pavadinimas').value,
+                Paslaugos_pavadinimas: document.getElementById('paslaugos_pavadinimas').value,
+                Dovanu_cekis: document.getElementById('dovanu_cekis').value,
+                Vieneto_kaina: document.getElementById('vieneto_kaina').value,
+                Uzsakymo_data: document.getElementById('uzsakymo_data').value,
+                Kaina: document.getElementById('kaina').value,
+                Busena: document.getElementById('busena').value,
+                fk_Klientai_id_Klientas: document.getElementById('fk_Klientai_id_Klientas').value
+            };
+
+            // For new records, don't include id_Uzsakymo
+            const url = detailId ? `/uzsakymo_detales/${detailId}` : '/uzsakymo_detales/insert';
+            const method = detailId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (response.ok) {
+                    hideForm();
+                    loadOrderDetails();
+                } else {
+                    throw new Error('Failed to save detail');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html> 

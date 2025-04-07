@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Klientai</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: rgba(147, 112, 219, 0.1);
+        }
+        .table-container {
+            margin-top: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .form-container {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background-color: #f8f9fa;
+        }
+        .hidden {
+            display: none;
+        }
+        .btn-group-sm > .btn, .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            border-radius: 20px;
+            margin: 0 2px;
+        }
+        .btn-primary {
+            background-color: #9370DB;
+            border-color: #9370DB;
+            border-radius: 20px;
+        }
+        .btn-primary:hover {
+            background-color: #7B68EE;
+            border-color: #7B68EE;
+        }
+        .btn-warning {
+            background-color: #4169E1;
+            border-color: #4169E1;
+            color: white;
+            border-radius: 20px;
+        }
+        .btn-warning:hover {
+            background-color: #1E90FF;
+            border-color: #1E90FF;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #DC143C;
+            border-color: #DC143C;
+            border-radius: 20px;
+        }
+        .btn-danger:hover {
+            background-color: #B22222;
+            border-color: #B22222;
+        }
+        .table {
+            margin-bottom: 0;
+        }
+        .table thead th {
+            background-color: #9370DB;
+            color: white;
+            border: none;
+        }
+        .table tbody tr:hover {
+            background-color: rgba(147, 112, 219, 0.05);
+        }
+        .btn i {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4">Klientai</h1>
+        
+        <div class="mb-3">
+            <a href="/" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Grįžti atgal</a>
+            <button class="btn btn-primary" onclick="showAddForm()"><i class="fas fa-plus"></i> Pridėti naują klientą</button>
+        </div>
+
+        <div class="table-container">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Vardas</th>
+                        <th>Pavardė</th>
+                        <th>Gimimo data</th>
+                        <th>Telefono numeris</th>
+                        <th>Gyvenamoji vieta</th>
+                        <th>Pašto kodas</th>
+                        <th>Elektroninio pašto adresas</th>
+                        <th>Veiksmai</th>
+                    </tr>
+                </thead>
+                <tbody id="clientsTableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Add/Edit Form -->
+        <div id="addEditForm" class="form-container hidden">
+            <h2 id="formTitle">Pridėti naują klientą</h2>
+            <form id="clientForm">
+                <input type="hidden" id="clientId">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="vardas" class="form-label">Vardas</label>
+                            <input type="text" class="form-control" id="vardas" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="pavarde" class="form-label">Pavardė</label>
+                            <input type="text" class="form-control" id="pavarde" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="gimimo_diena" class="form-label">Gimimo data</label>
+                            <input type="date" class="form-control" id="gimimo_diena" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="telefono_numeris" class="form-label">Telefono numeris</label>
+                            <input type="text" class="form-control" id="telefono_numeris" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="gyvenamoji_vieta" class="form-label">Gyvenamoji vieta</label>
+                            <input type="text" class="form-control" id="gyvenamoji_vieta" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="pasto_kodas" class="form-label">Pašto kodas</label>
+                            <input type="text" class="form-control" id="pasto_kodas" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="elektroninio_pasto_adresas" class="form-label">Elektroninio pašto adresas</label>
+                            <input type="email" class="form-control" id="elektroninio_pasto_adresas" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" onclick="hideForm()"><i class="fas fa-times"></i> Atšaukti</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Išsaugoti</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Load clients when page loads
+        document.addEventListener('DOMContentLoaded', loadClients);
+
+        function loadClients() {
+            fetch('/klientai/data')
+                .then(response => response.json())
+                .then(data => {
+                    const tbody = document.getElementById('clientsTableBody');
+                    tbody.innerHTML = '';
+                    data.forEach(client => {
+                        const row = document.createElement('tr');
+                        row.setAttribute('data-id', client.id_Klientas);
+                        row.innerHTML = `
+                            <td>${client.id_Klientas}</td>
+                            <td>${client.Vardas}</td>
+                            <td>${client.Pavarde}</td>
+                            <td>${client.Gimimo_diena}</td>
+                            <td>${client.Telefono_numeris}</td>
+                            <td>${client.Gyvenamoji_vieta}</td>
+                            <td>${client.Pasto_kodas}</td>
+                            <td>${client.Elektroninio_pasto_adresas}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-warning" onclick="editClient(${client.id_Klientas})"><i class="fas fa-edit"></i> Redaguoti</button>
+                                    <button class="btn btn-danger" onclick="deleteClient(${client.id_Klientas})"><i class="fas fa-trash"></i> Ištrinti</button>
+                                </div>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function showAddForm() {
+            document.getElementById('formTitle').textContent = 'Pridėti naują klientą';
+            document.getElementById('clientId').value = '';
+            document.getElementById('clientForm').reset();
+            document.getElementById('addEditForm').classList.remove('hidden');
+        }
+
+        function editClient(id) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            if (!row) return;
+
+            const cells = row.cells;
+            const currentData = {
+                Vardas: cells[1].textContent,
+                Pavarde: cells[2].textContent,
+                Gimimo_diena: cells[3].textContent,
+                Telefono_numeris: cells[4].textContent,
+                Gyvenamoji_vieta: cells[5].textContent,
+                Pasto_kodas: cells[6].textContent,
+                Elektroninio_pasto_adresas: cells[7].textContent
+            };
+
+            cells[1].innerHTML = `<input type="text" class="form-control" value="${currentData.Vardas}">`;
+            cells[2].innerHTML = `<input type="text" class="form-control" value="${currentData.Pavarde}">`;
+            cells[3].innerHTML = `<input type="date" class="form-control" value="${currentData.Gimimo_diena}">`;
+            cells[4].innerHTML = `<input type="text" class="form-control" value="${currentData.Telefono_numeris}">`;
+            cells[5].innerHTML = `<input type="text" class="form-control" value="${currentData.Gyvenamoji_vieta}">`;
+            cells[6].innerHTML = `<input type="text" class="form-control" value="${currentData.Pasto_kodas}">`;
+            cells[7].innerHTML = `<input type="email" class="form-control" value="${currentData.Elektroninio_pasto_adresas}">`;
+
+            const actionCell = cells[8];
+            actionCell.innerHTML = `
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-warning" onclick="saveClientEdit(${id})"><i class="fas fa-save"></i> Išsaugoti</button>
+                    <button class="btn btn-secondary" onclick="cancelClientEdit(${id})"><i class="fas fa-times"></i> Atšaukti</button>
+                </div>
+            `;
+        }
+
+        function saveClientEdit(id) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            const inputs = row.querySelectorAll('input');
+            
+            const updatedData = {
+                Vardas: inputs[0].value,
+                Pavarde: inputs[1].value,
+                Gimimo_diena: inputs[2].value,
+                Telefono_numeris: inputs[3].value,
+                Gyvenamoji_vieta: inputs[4].value,
+                Pasto_kodas: inputs[5].value,
+                Elektroninio_pasto_adresas: inputs[6].value
+            };
+
+            fetch(`/klientai/update/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updatedData)
+            })
+            .then(response => {
+                if (response.ok) {
+                    loadClients();
+                } else {
+                    throw new Error('Failed to update client');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function cancelClientEdit(id) {
+            loadClients();
+        }
+
+        function hideForm() {
+            document.getElementById('addEditForm').classList.add('hidden');
+        }
+
+        function deleteClient(id) {
+            if (confirm('Ar tikrai norite ištrinti šį klientą?')) {
+                fetch(`/klientai/delete/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (response.ok) {
+                        loadClients();
+                    } else {
+                        throw new Error('Failed to delete client');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }
+
+        document.getElementById('clientForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const clientId = document.getElementById('clientId').value;
+            const data = {
+                Vardas: document.getElementById('vardas').value,
+                Pavarde: document.getElementById('pavarde').value,
+                Gimimo_diena: document.getElementById('gimimo_diena').value,
+                Telefono_numeris: document.getElementById('telefono_numeris').value,
+                Gyvenamoji_vieta: document.getElementById('gyvenamoji_vieta').value,
+                Pasto_kodas: document.getElementById('pasto_kodas').value,
+                Elektroninio_pasto_adresas: document.getElementById('elektroninio_pasto_adresas').value
+            };
+
+            const url = clientId ? `/klientai/update/${clientId}` : '/klientai/insert';
+            const method = clientId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (response.ok) {
+                    hideForm();
+                    loadClients();
+                } else {
+                    throw new Error('Failed to save client');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html> 

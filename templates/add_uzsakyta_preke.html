@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Pridėti naują prekę</title>
+  <title>Pridėti naują užsakytą prekę</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -51,7 +51,7 @@
       font-weight: 600;
     }
     
-    input, textarea {
+    input, select {
       width: 100%;
       padding: 12px;
       border: 2px solid #eee;
@@ -60,7 +60,7 @@
       transition: all 0.3s ease;
     }
     
-    input:focus, textarea:focus {
+    input:focus, select:focus {
       outline: none;
       border-color: #6c3483;
       box-shadow: 0 0 0 3px rgba(108, 52, 131, 0.1);
@@ -120,44 +120,44 @@
   </style>
 </head>
 <body>
-  <a href="/prekes" class="btn-back">Grįžti atgal</a>
+  <a href="/uzsakytos_prekes" class="btn-back">Grįžti atgal</a>
   <div class="container">
-    <h1>Pridėti naują prekę</h1>
-    <form id="addPrekeForm">
+    <h1>Pridėti naują užsakytą prekę</h1>
+    <form id="addUzsakytaPrekeForm">
       <div class="form-group">
-        <label for="pavadinimas">Pavadinimas</label>
-        <input type="text" id="pavadinimas" name="pavadinimas" required>
+        <label for="tipas">Tipas</label>
+        <input type="text" id="tipas" name="tipas" required>
       </div>
       <div class="form-group">
-        <label for="aprasymas">Aprašymas</label>
-        <textarea id="aprasymas" name="aprasymas" rows="4" required></textarea>
+        <label for="kiekis">Kiekis</label>
+        <input type="number" id="kiekis" name="kiekis" required>
       </div>
       <div class="form-group">
-        <label for="kaina">Kaina</label>
-        <input type="number" id="kaina" name="kaina" step="0.01" required>
+        <label for="fk_prekes_id">Prekės ID</label>
+        <input type="number" id="fk_prekes_id" name="fk_prekes_id" required>
       </div>
       <div class="form-group">
-        <label for="busena">Būsena</label>
-        <input type="text" id="busena" name="busena" required>
+        <label for="fk_uzsakymo_id">Užsakymo ID</label>
+        <input type="number" id="fk_uzsakymo_id" name="fk_uzsakymo_id" required>
       </div>
       <button type="submit" class="btn-submit">
-        <i class="fas fa-plus"></i> Pridėti prekę
+        <i class="fas fa-plus"></i> Pridėti užsakytą prekę
       </button>
     </form>
   </div>
 
   <script>
-    document.getElementById('addPrekeForm').addEventListener('submit', function(e) {
+    document.getElementById('addUzsakytaPrekeForm').addEventListener('submit', function(e) {
       e.preventDefault();
       
       const formData = {
-        Pavadinimas: document.getElementById('pavadinimas').value,
-        Aprasymas: document.getElementById('aprasymas').value,
-        Kaina: document.getElementById('kaina').value,
-        Busena: document.getElementById('busena').value
+        Tipas: document.getElementById('tipas').value,
+        Kiekis: document.getElementById('kiekis').value,
+        fk_Prekes_id_Preke: document.getElementById('fk_prekes_id').value,
+        fk_Uzsakymo_detales_id_Uzsakymo: document.getElementById('fk_uzsakymo_id').value
       };
       
-      fetch('/prekes/insert', {
+      fetch('/uzsakytos_prekes/insert', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -167,11 +167,11 @@
       .then(response => response.json())
       .then(data => {
         alert(data.message);
-        window.location.href = '/prekes';
+        window.location.href = '/uzsakytos_prekes';
       })
       .catch(error => {
         console.error('Error:', error);
-        alert('Įvyko klaida pridedant prekę');
+        alert('Įvyko klaida pridedant užsakytą prekę');
       });
     });
   </script>

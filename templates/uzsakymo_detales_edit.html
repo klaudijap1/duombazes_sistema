@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redaguoti užsakymo detalę</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        .error {
+            color: red;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Redaguoti užsakymo detalę</h1>
+    <form id="editForm">
+        <div class="form-group">
+            <label for="prekes_pavadinimas">Prekės pavadinimas:</label>
+            <input type="text" id="prekes_pavadinimas" name="Prekes_pavadinimas" value="{{ uzsakymo_detale.Prekes_pavadinimas }}">
+        </div>
+        <div class="form-group">
+            <label for="paslaugos_pavadinimas">Paslaugos pavadinimas:</label>
+            <input type="text" id="paslaugos_pavadinimas" name="Paslaugos_pavadinimas" value="{{ uzsakymo_detale.Paslaugos_pavadinimas }}">
+        </div>
+        <div class="form-group">
+            <label for="dovanu_cekis">Dovanų čekis:</label>
+            <input type="text" id="dovanu_cekis" name="Dovanu_cekis" value="{{ uzsakymo_detale.Dovanu_cekis }}">
+        </div>
+        <div class="form-group">
+            <label for="vieneto_kaina">Vieneto kaina:</label>
+            <input type="number" step="0.01" id="vieneto_kaina" name="Vieneto_kaina" value="{{ uzsakymo_detale.Vieneto_kaina }}">
+        </div>
+        <div class="form-group">
+            <label for="uzsakymo_data">Užsakymo data:</label>
+            <input type="date" id="uzsakymo_data" name="Uzsakymo_data" value="{{ uzsakymo_detale.Uzsakymo_data }}">
+        </div>
+        <div class="form-group">
+            <label for="kaina">Kaina:</label>
+            <input type="number" step="0.01" id="kaina" name="Kaina" value="{{ uzsakymo_detale.Kaina }}">
+        </div>
+        <div class="form-group">
+            <label for="busena">Būsena:</label>
+            <input type="text" id="busena" name="Busena" value="{{ uzsakymo_detale.Busena }}">
+        </div>
+        <div class="form-group">
+            <label for="klientas">Kliento ID:</label>
+            <input type="number" id="klientas" name="fk_Klientasid_Klientas" value="{{ uzsakymo_detale.fk_Klientasid_Klientas }}">
+        </div>
+        <button type="submit">Išsaugoti</button>
+        <button type="button" onclick="window.location.href='/uzsakymo_detales'">Atšaukti</button>
+    </form>
+
+    <script>
+        document.getElementById('editForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                Prekes_pavadinimas: document.getElementById('prekes_pavadinimas').value,
+                Paslaugos_pavadinimas: document.getElementById('paslaugos_pavadinimas').value,
+                Dovanu_cekis: document.getElementById('dovanu_cekis').value,
+                Vieneto_kaina: parseFloat(document.getElementById('vieneto_kaina').value),
+                Uzsakymo_data: document.getElementById('uzsakymo_data').value,
+                Kaina: parseFloat(document.getElementById('kaina').value),
+                Busena: document.getElementById('busena').value,
+                fk_Klientasid_Klientas: parseInt(document.getElementById('klientas').value)
+            };
+
+            fetch(`/uzsakymo_detales/{{ uzsakymo_detale.id_Uzsakymo_detale }}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Server error');
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('Užsakymo detalė sėkmingai atnaujinta');
+                window.location.href = '/uzsakymo_detales';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Klaida atnaujinant užsakymo detalę');
+            });
+        });
+    </script>
+</body>
+</html> 

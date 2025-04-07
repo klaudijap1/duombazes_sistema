@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prekės</title>
+    <title>Užsakytos Prekės</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -80,11 +80,11 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="my-4">Prekės</h1>
+        <h1 class="my-4">Užsakytos Prekės</h1>
         
         <div class="mb-3">
             <a href="/" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Grįžti atgal</a>
-            <button class="btn btn-primary" onclick="showAddForm()"><i class="fas fa-plus"></i> Pridėti naują prekę</button>
+            <button class="btn btn-primary" onclick="showAddForm()"><i class="fas fa-plus"></i> Pridėti naują užsakytą prekę</button>
         </div>
 
         <div class="table-container">
@@ -92,42 +92,42 @@
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Pavadinimas</th>
-                        <th>Kaina</th>
-                        <th>Aprašymas</th>
-                        <th>Būsena</th>
+                        <th>Tipas</th>
+                        <th>Kiekis</th>
+                        <th>Prekės ID</th>
+                        <th>Užsakymo ID</th>
                         <th>Veiksmai</th>
                     </tr>
                 </thead>
-                <tbody id="productsTableBody">
+                <tbody id="orderedItemsTableBody">
                 </tbody>
             </table>
         </div>
 
         <!-- Add/Edit Form -->
         <div id="addEditForm" class="form-container hidden">
-            <h2 id="formTitle">Pridėti naują prekę</h2>
-            <form id="productForm">
-                <input type="hidden" id="productId">
+            <h2 id="formTitle">Pridėti naują užsakytą prekę</h2>
+            <form id="orderedItemForm">
+                <input type="hidden" id="itemId">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label for="pavadinimas" class="form-label">Pavadinimas</label>
-                            <input type="text" class="form-control" id="pavadinimas" required>
+                            <label for="tipas" class="form-label">Tipas</label>
+                            <input type="text" class="form-control" id="tipas" required>
                         </div>
                         <div class="mb-3">
-                            <label for="kaina" class="form-label">Kaina</label>
-                            <input type="number" step="0.01" class="form-control" id="kaina" required>
+                            <label for="kiekis" class="form-label">Kiekis</label>
+                            <input type="number" class="form-control" id="kiekis" required>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label for="busena" class="form-label">Būsena</label>
-                            <input type="text" class="form-control" id="busena" required>
+                            <label for="fk_Prekes_id_Preke" class="form-label">Prekės ID</label>
+                            <input type="number" class="form-control" id="fk_Prekes_id_Preke" required>
                         </div>
                         <div class="mb-3">
-                            <label for="aprasymas" class="form-label">Aprašymas</label>
-                            <textarea class="form-control" id="aprasymas" rows="3"></textarea>
+                            <label for="fk_Uzsakymo_detales_id_Uzsakymo" class="form-label">Užsakymo ID</label>
+                            <input type="number" class="form-control" id="fk_Uzsakymo_detales_id_Uzsakymo" required>
                         </div>
                     </div>
                 </div>
@@ -140,28 +140,28 @@
     </div>
 
     <script>
-        // Load products when page loads
-        document.addEventListener('DOMContentLoaded', loadProducts);
+        // Load ordered items when page loads
+        document.addEventListener('DOMContentLoaded', loadOrderedItems);
 
-        function loadProducts() {
-            fetch('/prekes/data')
+        function loadOrderedItems() {
+            fetch('/uzsakytos_prekes/data')
                 .then(response => response.json())
                 .then(data => {
-                    const tbody = document.getElementById('productsTableBody');
+                    const tbody = document.getElementById('orderedItemsTableBody');
                     tbody.innerHTML = '';
                     data.forEach(item => {
                         const row = document.createElement('tr');
-                        row.setAttribute('data-id', item.id_Preke);
+                        row.setAttribute('data-id', item.id_Uzsakyta_preke);
                         row.innerHTML = `
-                            <td>${item.id_Preke}</td>
-                            <td>${item.Pavadinimas || '-'}</td>
-                            <td>${item.Kaina || '0.00'}</td>
-                            <td>${item.Aprasymas || '-'}</td>
-                            <td>${item.Busena || '-'}</td>
+                            <td>${item.id_Uzsakyta_preke}</td>
+                            <td>${item.Tipas || '-'}</td>
+                            <td>${item.Kiekis || '-'}</td>
+                            <td>${item.fk_Prekes_id_Preke || '-'}</td>
+                            <td>${item.fk_Uzsakymo_detales_id_Uzsakymo || '-'}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-warning" onclick="editProduct(${item.id_Preke})"><i class="fas fa-edit"></i> Redaguoti</button>
-                                    <button class="btn btn-danger" onclick="deleteProduct(${item.id_Preke})"><i class="fas fa-trash"></i> Ištrinti</button>
+                                    <button class="btn btn-warning" onclick="editOrderedItem(${item.id_Uzsakyta_preke})"><i class="fas fa-edit"></i> Redaguoti</button>
+                                    <button class="btn btn-danger" onclick="deleteOrderedItem(${item.id_Uzsakyta_preke})"><i class="fas fa-trash"></i> Ištrinti</button>
                                 </div>
                             </td>
                         `;
@@ -172,50 +172,50 @@
         }
 
         function showAddForm() {
-            document.getElementById('formTitle').textContent = 'Pridėti naują prekę';
-            document.getElementById('productId').value = '';
-            document.getElementById('productForm').reset();
+            document.getElementById('formTitle').textContent = 'Pridėti naują užsakytą prekę';
+            document.getElementById('itemId').value = '';
+            document.getElementById('orderedItemForm').reset();
             document.getElementById('addEditForm').classList.remove('hidden');
         }
 
-        function editProduct(id) {
+        function editOrderedItem(id) {
             const row = document.querySelector(`tr[data-id="${id}"]`);
             if (!row) return;
 
             const cells = row.cells;
             const currentData = {
-                Pavadinimas: cells[1].textContent,
-                Kaina: cells[2].textContent,
-                Aprasymas: cells[3].textContent === '-' ? '' : cells[3].textContent,
-                Busena: cells[4].textContent
+                Tipas: cells[1].textContent,
+                Kiekis: cells[2].textContent,
+                fk_Prekes_id_Preke: cells[3].textContent,
+                fk_Uzsakymo_detales_id_Uzsakymo: cells[4].textContent
             };
 
-            cells[1].innerHTML = `<input type="text" class="form-control" value="${currentData.Pavadinimas}">`;
-            cells[2].innerHTML = `<input type="number" step="0.01" class="form-control" value="${currentData.Kaina}">`;
-            cells[3].innerHTML = `<textarea class="form-control">${currentData.Aprasymas}</textarea>`;
-            cells[4].innerHTML = `<input type="text" class="form-control" value="${currentData.Busena}">`;
+            cells[1].innerHTML = `<input type="text" class="form-control" value="${currentData.Tipas}">`;
+            cells[2].innerHTML = `<input type="number" class="form-control" value="${currentData.Kiekis}">`;
+            cells[3].innerHTML = `<input type="number" class="form-control" value="${currentData.fk_Prekes_id_Preke}">`;
+            cells[4].innerHTML = `<input type="number" class="form-control" value="${currentData.fk_Uzsakymo_detales_id_Uzsakymo}">`;
 
             const actionCell = cells[5];
             actionCell.innerHTML = `
                 <div class="btn-group btn-group-sm">
-                    <button class="btn btn-warning" onclick="saveProductEdit(${id})"><i class="fas fa-save"></i> Išsaugoti</button>
-                    <button class="btn btn-secondary" onclick="cancelProductEdit(${id})"><i class="fas fa-times"></i> Atšaukti</button>
+                    <button class="btn btn-warning" onclick="saveOrderedItemEdit(${id})"><i class="fas fa-save"></i> Išsaugoti</button>
+                    <button class="btn btn-secondary" onclick="cancelOrderedItemEdit(${id})"><i class="fas fa-times"></i> Atšaukti</button>
                 </div>
             `;
         }
 
-        function saveProductEdit(id) {
+        function saveOrderedItemEdit(id) {
             const row = document.querySelector(`tr[data-id="${id}"]`);
-            const inputs = row.querySelectorAll('input, textarea');
+            const inputs = row.querySelectorAll('input');
             
             const updatedData = {
-                Pavadinimas: inputs[0].value,
-                Kaina: inputs[1].value,
-                Aprasymas: inputs[2].value,
-                Busena: inputs[3].value
+                Tipas: inputs[0].value,
+                Kiekis: inputs[1].value,
+                fk_Prekes_id_Preke: inputs[2].value,
+                fk_Uzsakymo_detales_id_Uzsakymo: inputs[3].value
             };
 
-            fetch(`/prekes/update/${id}`, {
+            fetch(`/uzsakytos_prekes/update/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json'
@@ -224,50 +224,50 @@
             })
             .then(response => {
                 if (response.ok) {
-                    loadProducts();
+                    loadOrderedItems();
                 } else {
-                    throw new Error('Failed to update product');
+                    throw new Error('Failed to update item');
                 }
             })
             .catch(error => console.error('Error:', error));
         }
 
-        function cancelProductEdit(id) {
-            loadProducts();
+        function cancelOrderedItemEdit(id) {
+            loadOrderedItems();
         }
 
         function hideForm() {
             document.getElementById('addEditForm').classList.add('hidden');
         }
 
-        function deleteProduct(id) {
-            if (confirm('Ar tikrai norite ištrinti šią prekę?')) {
-                fetch(`/prekes/delete/${id}`, {
+        function deleteOrderedItem(id) {
+            if (confirm('Ar tikrai norite ištrinti šią užsakytą prekę?')) {
+                fetch(`/uzsakytos_prekes/delete/${id}`, {
                     method: 'DELETE'
                 })
                 .then(response => {
                     if (response.ok) {
-                        loadProducts();
+                        loadOrderedItems();
                     } else {
-                        throw new Error('Failed to delete product');
+                        throw new Error('Failed to delete item');
                     }
                 })
                 .catch(error => console.error('Error:', error));
             }
         }
 
-        document.getElementById('productForm').addEventListener('submit', function(e) {
+        document.getElementById('orderedItemForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            const productId = document.getElementById('productId').value;
+            const itemId = document.getElementById('itemId').value;
             const data = {
-                Pavadinimas: document.getElementById('pavadinimas').value,
-                Kaina: document.getElementById('kaina').value,
-                Aprasymas: document.getElementById('aprasymas').value,
-                Busena: document.getElementById('busena').value
+                Tipas: document.getElementById('tipas').value,
+                Kiekis: document.getElementById('kiekis').value,
+                fk_Prekes_id_Preke: document.getElementById('fk_Prekes_id_Preke').value,
+                fk_Uzsakymo_detales_id_Uzsakymo: document.getElementById('fk_Uzsakymo_detales_id_Uzsakymo').value
             };
 
-            const url = productId ? `/prekes/update/${productId}` : '/prekes/insert';
-            const method = productId ? 'PUT' : 'POST';
+            const url = itemId ? `/uzsakytos_prekes/update/${itemId}` : '/uzsakytos_prekes/insert';
+            const method = itemId ? 'PUT' : 'POST';
 
             fetch(url, {
                 method: method,
@@ -279,9 +279,9 @@
             .then(response => {
                 if (response.ok) {
                     hideForm();
-                    loadProducts();
+                    loadOrderedItems();
                 } else {
-                    throw new Error('Failed to save product');
+                    throw new Error('Failed to save item');
                 }
             })
             .catch(error => console.error('Error:', error));
