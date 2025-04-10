@@ -84,7 +84,7 @@
         
         <div class="mb-3">
             <a href="/" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Grįžti atgal</a>
-            <button class="btn btn-primary" onclick="showAddForm()"><i class="fas fa-plus"></i> Pridėti naują užsakymo detalę</button>
+            <button class="btn btn-primary" onclick="showAddForm()"><i class="fas fa-plus"></i> Pridėti naują užsakymą</button>
         </div>
 
         <div class="table-container">
@@ -99,7 +99,7 @@
                         <th>Užsakymo data</th>
                         <th>Kaina</th>
                         <th>Būsena</th>
-                        <th>Kliento ID</th>
+                        <th>Klientas</th>
                         <th>Veiksmai</th>
                     </tr>
                 </thead>
@@ -110,14 +110,16 @@
 
         <!-- Add/Edit Form -->
         <div id="addEditForm" class="form-container hidden">
-            <h2 id="formTitle">Pridėti naują užsakymo detalę</h2>
+            <h2 id="formTitle">Pridėti naują užsakymą</h2>
             <form id="orderDetailForm">
                 <input type="hidden" id="detailId">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label for="prekes_pavadinimas" class="form-label">Prekės pavadinimas</label>
-                            <input type="text" class="form-control" id="prekes_pavadinimas">
+                            <select class="form-control" id="prekes_pavadinimas" required>
+                                <option value="">Pasirinkite prekę</option>
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label for="paslaugos_pavadinimas" class="form-label">Paslaugos pavadinimas</label>
@@ -146,8 +148,10 @@
                             <input type="text" class="form-control" id="busena">
                         </div>
                         <div class="mb-3">
-                            <label for="fk_Klientai_id_Klientas" class="form-label">Kliento ID</label>
-                            <input type="number" class="form-control" id="fk_Klientai_id_Klientas" required>
+                            <label for="fk_Klientai_id_Klientas" class="form-label">Klientas</label>
+                            <select class="form-control" id="fk_Klientai_id_Klientas" required>
+                                <option value="">Pasirinkite klientą</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -160,8 +164,50 @@
     </div>
 
     <script>
-        // Load order details when page loads
-        document.addEventListener('DOMContentLoaded', loadOrderDetails);
+        // Load order details and clients when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadOrderDetails();
+            loadProducts();
+            loadClients();
+        });
+
+        function loadProducts() {
+            fetch('/prekes/data')
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('prekes_pavadinimas');
+                    select.innerHTML = '<option value="">Pasirinkite prekę</option>';
+                    data.forEach(product => {
+                        const option = document.createElement('option');
+                        option.value = product.Pavadinimas;
+                        option.textContent = product.Pavadinimas;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading products:', error);
+                    alert('Klaida įkeliant prekes. Patikrinkite konsolę daugiau informacijos.');
+                });
+        }
+
+        function loadClients() {
+            fetch('/klientai/data')
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('fk_Klientai_id_Klientas');
+                    select.innerHTML = '<option value="">Pasirinkite klientą</option>';
+                    data.forEach(client => {
+                        const option = document.createElement('option');
+                        option.value = client.id_Klientas;
+                        option.textContent = `${client.Vardas} ${client.Pavarde}`;
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading clients:', error);
+                    alert('Klaida įkeliant klientus. Patikrinkite konsolę daugiau informacijos.');
+                });
+        }
 
         function loadOrderDetails() {
             fetch('/uzsakymo_detales/data')
@@ -183,7 +229,7 @@
                             <td>${detail.Uzsakymo_data ? new Date(detail.Uzsakymo_data).toLocaleDateString('lt-LT') : '-'}</td>
                             <td>${detail.Kaina ? parseFloat(detail.Kaina).toFixed(2) : '0.00'}</td>
                             <td>${detail.Busena || '-'}</td>
-                            <td>${detail.fk_Klientai_id_Klientas}</td>
+                            <td>${detail.Klientas ? `${detail.Klientas.Vardas} ${detail.Klientas.Pavarde}` : '-'}</td>
                             <td>
                                 <div class="btn-group btn-group-sm">
                                     <button class="btn btn-warning" onclick="editOrderDetail(${detail.id_Uzsakymo})">
@@ -205,10 +251,12 @@
         }
 
         function showAddForm() {
-            document.getElementById('formTitle').textContent = 'Pridėti naują užsakymo detalę';
+            document.getElementById('formTitle').textContent = 'Pridėti naują užsakymą';
             document.getElementById('detailId').value = '';
             document.getElementById('orderDetailForm').reset();
             document.getElementById('addEditForm').classList.remove('hidden');
+            loadProducts(); // Reload products when showing the form
+            loadClients(); // Reload clients when showing the form
         }
 
         function editOrderDetail(id) {
@@ -241,7 +289,14 @@
                 }
                 // Special handling for client ID (index 8)
                 else if (i === 8) {
-                    cell.innerHTML = `<input type="number" class="form-control" value="${currentValue}">`;
+                    const currentClientId = currentValue.split(' ')[0]; // Get the client ID from the text
+                    cell.innerHTML = `
+                        <select class="form-control" id="clientSelect_${id}">
+                            <option value="">Pasirinkite klientą</option>
+                        </select>
+                    `;
+                    // Load clients and set the current value
+                    loadClientsForEdit(id, currentClientId);
                 }
                 // Default text input for other fields
                 else {
@@ -267,6 +322,28 @@
             loadOrderDetails(); // Reload the table to cancel editing
         }
 
+        function loadClientsForEdit(rowId, currentClientId) {
+            fetch('/klientai/data')
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById(`clientSelect_${rowId}`);
+                    select.innerHTML = '<option value="">Pasirinkite klientą</option>';
+                    data.forEach(client => {
+                        const option = document.createElement('option');
+                        option.value = client.id_Klientas;
+                        option.textContent = `${client.Vardas} ${client.Pavarde}`;
+                        if (client.id_Klientas == currentClientId) {
+                            option.selected = true;
+                        }
+                        select.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading clients:', error);
+                    alert('Klaida įkeliant klientus. Patikrinkite konsolę daugiau informacijos.');
+                });
+        }
+
         function saveOrderDetailEdit(id) {
             const row = document.querySelector(`tr[data-id="${id}"]`);
             if (!row) {
@@ -283,7 +360,7 @@
                 Uzsakymo_data: cells[5].querySelector('input').value,
                 Kaina: cells[6].querySelector('input').value,
                 Busena: cells[7].querySelector('input').value,
-                fk_Klientai_id_Klientas: cells[8].querySelector('input').value
+                fk_Klientai_id_Klientas: document.getElementById(`clientSelect_${id}`).value
             };
 
             console.log('Sending update data:', updatedData); // Debug log

@@ -347,7 +347,9 @@ def get_uzsakymo_detales():
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT * FROM uzsakymo_detales
+            SELECT ud.*, k.Vardas, k.Pavarde 
+            FROM uzsakymo_detales ud
+            LEFT JOIN klientai k ON ud.fk_Klientai_id_Klientas = k.id_Klientas
         """)
         rows = cursor.fetchall()
         print(f"Fetched {len(rows)} rows from database")
@@ -364,7 +366,11 @@ def get_uzsakymo_detales():
                 'Uzsakymo_data': row[5],
                 'Kaina': row[6],
                 'Busena': row[7],
-                'fk_Klientai_id_Klientas': row[8]
+                'fk_Klientai_id_Klientas': row[8],
+                'Klientas': {
+                    'Vardas': row[9],
+                    'Pavarde': row[10]
+                }
             }
             result.append(item)
         
