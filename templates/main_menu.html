@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="main-title">Užsakymų valdymo sistema</h1>
+    <div class="menu-buttons">        <a href="{{ url_for('uzsakymo_detales') }}" class="menu-button">
+            <span class="button-icon">📋</span>
+            Peržiūrėti užsakymus
+        </a>
+        <a href="{{ url_for('create_order') }}" class="menu-button">
+            <span class="button-icon">➕</span>
+            Sukurti naują užsakymą
+        </a>
+        <a href="{{ url_for('ataskaita_filtrai') }}" class="menu-button">
+            <span class="button-icon">📊</span>
+            Ataskaita
+        </a>
+    </div>
+</div>
+
+<style>
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.main-title {
+    color: #1a1a1a;
+    font-size: 2.5rem;
+    margin-bottom: 3rem;
+    font-weight: 600;
+}
+
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.menu-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, #6b8cff, #8a6bff);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    transition: transform 0.3s, box-shadow 0.3s;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.menu-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.button-icon {
+    font-size: 1.5rem;
+}
+</style>
+{% endblock %} 

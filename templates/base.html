@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}Užsakymų valdymo sistema{% endblock %}</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f4f8;
+            color: #333;
+        }
+        .navbar {
+            background-color: #1a1a1a;
+            padding: 1rem 2rem;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .navbar a {
+            color: #e0e0e0;
+            text-decoration: none;
+            margin-right: 2rem;
+            font-size: 1.1rem;
+            transition: color 0.3s;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+        .navbar a:hover {
+            color: #ffffff;
+            background-color: rgba(255,255,255,0.1);
+        }
+        .content {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .flash-messages {
+            margin-bottom: 1.5rem;
+        }
+        .flash-message {
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .flash-message.success {
+            background-color: #e6f7ff;
+            color: #0066cc;
+            border-left: 4px solid #0066cc;
+        }
+        .flash-message.error {
+            background-color: #fff0f0;
+            color: #cc0000;
+            border-left: 4px solid #cc0000;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="navbar">
+        <a href="{{ url_for('main_menu') }}">Pagrindinis meniu</a>
+        <a href="{{ url_for('uzsakymo_detales') }}">Užsakymai</a>
+        <a href="{{ url_for('create_order') }}">Sukurti užsakymą</a>
+    </div>
+
+    <div class="content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

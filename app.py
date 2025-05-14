@@ -1,464 +1,129 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
 from db_config import get_connection
-from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app, resources={
-    r"/*": {
-        "origins": "*",
-        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "expose_headers": ["Content-Range", "X-Content-Range"]
-    }
-})
-
-# Handle preflight requests for all routes
-@app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
-@app.route('/<path:path>', methods=['OPTIONS'])
-def handle_options(path):
-    return '', 204
+app.secret_key = 'your_secret_key_here'  # Required for flashing messages
 
 @app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/prekes')
-def prekes():
-    return render_template('prekes.html')
-
-@app.route('/prekes/data')
-def get_prekes():
-    try:
-        print("Attempting to fetch prekes data...")
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM prekes")
-        rows = cursor.fetchall()
-        print(f"Fetched {len(rows)} rows from database")
-        
-        # Convert the rows to a list of dictionaries with proper value handling
-        result = []
-        for row in rows:
-            item = {
-                'id_Preke': row[0],
-                'Pavadinimas': row[1],
-                'Aprasymas': row[2],
-                'Kaina': str(row[3]),  # Convert Decimal to string
-                'Busena': row[4]
-            }
-            result.append(item)
-        
-        print("Processed data:", result)
-        cursor.close()
-        conn.close()
-        return jsonify(result)
-    except Exception as e:
-        print(f"Error in get_prekes: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/prekes/add')
-def add_preke_form():
-    return render_template('add_preke.html')
-
-@app.route('/prekes/insert', methods=['POST'])
-def insert_preke():
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'message': 'No JSON data received'}), 400
-            
-        conn = get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            INSERT INTO prekes (
-                Pavadinimas, Aprasymas, Kaina, Busena
-            ) VALUES (%s, %s, %s, %s)
-        """, (
-            data['pavadinimas'], data['aprasymas'], data['kaina'], data['busena']
-        ))
-        
-        conn.commit()
-        
-        last_id = cursor.lastrowid
-        
-        cursor.close()
-        conn.close()
-        return jsonify({'message': f'Prekė sėkmingai pridėta! (ID: {last_id})'})
-        
-    except Exception as e:
-        print(f"Error in insert: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'message': f'Server error: {str(e)}'}), 500
-
-@app.route('/prekes/delete/<id>', methods=['DELETE'])
-def delete_preke(id):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM prekes WHERE id_Preke = %s", (id,))
-    conn.commit()
-    cursor.close()
-    conn.close()
-    return jsonify({'message': 'Deleted successfully'})
-
-@app.route('/prekes/update/<id>', methods=['PUT', 'OPTIONS'])
-def update_preke(id):
-    if request.method == 'OPTIONS':
-        return '', 204
-        
-    try:
-        print(f"Update request received for ID: {id}")
-        print(f"Request data: {request.data}")
-        print(f"Request content type: {request.content_type}")
-        
-        data = request.get_json()
-        print(f"Parsed JSON data: {data}")
-        
-        if not data:
-            print("No data received")
-            return jsonify({'message': 'No JSON data received'}), 400
-        
-        conn = None
-        cursor = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            
-            cursor.execute("SELECT * FROM prekes WHERE id_Preke = %s", (id,))
-            current_data = cursor.fetchone()
-            
-            if not current_data:
-                print(f"Preke with ID {id} not found")
-                return jsonify({'message': 'Preke not found'}), 404
-                
-            valid_fields = [
-                'Pavadinimas', 'Aprasymas', 'Kaina', 'Busena'
-            ]
-            
-            update_fields = []
-            update_values = []
-            
-            for field, value in data.items():
-                if field in valid_fields:
-                    if field == 'Kaina':
-                        # Handle float value for Kaina
-                        try:
-                            float_value = float(value)
-                            update_fields.append(f"`{field}` = %s")
-                            update_values.append(float_value)
-                        except (ValueError, TypeError):
-                            continue
-                    elif value and (isinstance(value, str) and value.strip()):
-                        # Handle string values
-                        update_fields.append(f"`{field}` = %s")
-                        update_values.append(value)
-            
-            if not update_fields:
-                print("No fields to update")
-                return jsonify({'message': 'No fields to update'}), 400
-                
-            update_values.append(id)
-            
-            query = f"UPDATE prekes SET {', '.join(update_fields)} WHERE id_Preke = %s"
-            print(f"Executing query: {query}")
-            print(f"With values: {update_values}")
-            
-            cursor.execute(query, update_values)
-            affected_rows = cursor.rowcount
-            print(f"Affected rows: {affected_rows}")
-            
-            conn.commit()
-            
-            if affected_rows > 0:
-                return jsonify({'message': 'Updated successfully'}), 200
-            else:
-                return jsonify({'message': 'No changes made'}), 200
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
-                
-    except Exception as e:
-        print(f"Error in update: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'message': f'Server error: {str(e)}'}), 500
-
-# Užsakytos prekės routes
-@app.route('/uzsakytos_prekes')
-def uzsakytos_prekes():
-    return render_template('uzsakytos_prekes.html')
-
-@app.route('/uzsakytos_prekes/data')
-def get_uzsakytos_prekes():
-    try:
-        print("Attempting to fetch uzsakytos_prekes data...")
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM uzsakytos_prekes")
-        rows = cursor.fetchall()
-        print(f"Fetched {len(rows)} rows from database")
-        
-        # Convert the rows to a list of dictionaries with proper value handling
-        result = []
-        for row in rows:
-            item = {
-                'id_Uzsakyta_preke': row[0],
-                'Tipas': row[1],
-                'Kiekis': row[2],
-                'fk_Prekes_id_Preke': row[3],
-                'fk_Uzsakymo_detales_id_Uzsakymo': row[4]
-            }
-            result.append(item)
-        
-        print("Processed data:", result)
-        cursor.close()
-        conn.close()
-        return jsonify(result)
-    except Exception as e:
-        print(f"Error in get_uzsakytos_prekes: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/uzsakytos_prekes/delete/<int:id>', methods=['DELETE', 'OPTIONS'])
-def delete_uzsakyta_preke(id):
-    if request.method == 'OPTIONS':
-        return '', 204
-    try:
-        print(f"Attempting to delete uzsakyta_preke {id}...")
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM uzsakytos_prekes WHERE id_Uzsakyta_preke = %s", (id,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return jsonify({'message': 'Užsakyta prekė sėkmingai ištrinta'})
-    except Exception as e:
-        print(f"Error in delete_uzsakyta_preke: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/uzsakytos_prekes/edit/<int:id>', methods=['GET'])
-def edit_uzsakyta_preke(id):
-    try:
-        print(f"Attempting to fetch uzsakyta_preke {id} for editing...")
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM uzsakytos_prekes WHERE id_Uzsakyta_preke = %s", (id,))
-        row = cursor.fetchone()
-        
-        if row:
-            uzsakyta_preke = {
-                'id_Uzsakyta_preke': row[0],
-                'Tipas': row[1],
-                'Kiekis': row[2],
-                'fk_Prekes_id_Preke': row[3],
-                'fk_Uzsakymo_detales_id_Uzsakymo': row[4]
-            }
-            cursor.close()
-            conn.close()
-            return render_template('uzsakytos_prekes_edit.html', uzsakyta_preke=uzsakyta_preke)
-        else:
-            cursor.close()
-            conn.close()
-            return jsonify({'error': 'Užsakyta prekė nerasta'}), 404
-    except Exception as e:
-        print(f"Error in edit_uzsakyta_preke: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/uzsakytos_prekes/update/<int:id>', methods=['PUT', 'OPTIONS'])
-def update_uzsakyta_preke(id):
-    if request.method == 'OPTIONS':
-        return '', 204
-    try:
-        print(f"Attempting to update uzsakyta_preke {id}...")
-        data = request.get_json()
-        print("Received data:", data)
-        
-        conn = get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            UPDATE uzsakytos_prekes 
-            SET Tipas = %s,
-                Kiekis = %s,
-                fk_Prekes_id_Preke = %s,
-                fk_Uzsakymo_detales_id_Uzsakymo = %s
-            WHERE id_Uzsakyta_preke = %s
-        """, (
-            data['Tipas'],
-            data['Kiekis'],
-            data['fk_Prekes_id_Preke'],
-            data['fk_Uzsakymo_detales_id_Uzsakymo'],
-            id
-        ))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return jsonify({'message': 'Užsakyta prekė sėkmingai atnaujinta'})
-    except Exception as e:
-        print(f"Error in update_uzsakyta_preke: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/uzsakytos_prekes/nauja')
-def add_uzsakyta_preke_form():
-    return render_template('add_uzsakyta_preke.html')
-
-@app.route('/uzsakytos_prekes/insert', methods=['POST'])
-def insert_uzsakyta_preke():
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'message': 'No JSON data received'}), 400
-            
-        conn = get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            INSERT INTO uzsakytos_prekes (
-                Tipas, Kiekis, fk_Prekes_id_Preke, fk_Uzsakymo_detales_id_Uzsakymo
-            ) VALUES (%s, %s, %s, %s)
-        """, (
-            data['tipas'], data['kiekis'], data['fk_prekes_id'], data['fk_uzsakymo_id']
-        ))
-        
-        conn.commit()
-        last_id = cursor.lastrowid
-        
-        cursor.close()
-        conn.close()
-        return jsonify({'message': f'Užsakyta prekė sėkmingai pridėta! (ID: {last_id})'})
-        
-    except Exception as e:
-        print(f"Error in insert: {str(e)}")
-        return jsonify({'message': f'Server error: {str(e)}'}), 500
+def main_menu():
+    return render_template('main_menu.html')
 
 @app.route('/uzsakymo_detales')
 def uzsakymo_detales():
-    return render_template('uzsakymo_detales.html')
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    query = """
+    SELECT 
+        ud.id_Uzsakymo,
+        ud.Paslaugos_pavadinimas,
+        ud.Dovanu_cekis,
+        ud.Vieneto_kaina,
+        ud.Uzsakymo_data,
+        ud.Kaina,
+        ud.Busena,
+        ud.fk_Klientai_id_Klientas,
+        CONCAT(k.Vardas, ' ', k.Pavarde) as Kliento_vardas,
+        GROUP_CONCAT(CONCAT(p.Pavadinimas, ' (', up.Kiekis, ')') SEPARATOR ', ') as Prekiu_pavadinimai
+    FROM uzsakymo_detales ud
+    LEFT JOIN klientai k ON ud.fk_Klientai_id_Klientas = k.id_Klientas
+    LEFT JOIN uzsakytos_prekes up ON ud.id_Uzsakymo = up.fk_Uzsakymo_detales_id_Uzsakymo
+    LEFT JOIN prekes p ON up.fk_Prekes_id_Preke = p.id_Preke
+    GROUP BY ud.id_Uzsakymo
+    """
+    
+    cursor.execute(query)
+    results = cursor.fetchall()
+    
+    # Get all clients for the dropdown
+    cursor.execute("SELECT id_Klientas, CONCAT(Vardas, ' ', Pavarde) as Kliento_vardas FROM klientai")
+    clients = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('uzsakymo_detales.html', orders=results, clients=clients)
 
-@app.route('/uzsakymo_detales/data')
-def get_uzsakymo_detales():
-    try:
-        print("Attempting to fetch uzsakymo_detales...")
+@app.route('/create_order', methods=['GET', 'POST'])
+def create_order():
+    if request.method == 'POST':
         conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT ud.*, k.Vardas, k.Pavarde 
-            FROM uzsakymo_detales ud
-            LEFT JOIN klientai k ON ud.fk_Klientai_id_Klientas = k.id_Klientas
-        """)
-        rows = cursor.fetchall()
-        print(f"Fetched {len(rows)} rows from database")
-        
-        # Convert the rows to a list of dictionaries
-        result = []
-        for row in rows:
-            item = {
-                'id_Uzsakymo': row[0],
-                'Prekes_pavadinimas': row[1],
-                'Paslaugos_pavadinimas': row[2],
-                'Dovanu_cekis': row[3],
-                'Vieneto_kaina': row[4],
-                'Uzsakymo_data': row[5],
-                'Kaina': row[6],
-                'Busena': row[7],
-                'fk_Klientai_id_Klientas': row[8],
-                'Klientas': {
-                    'Vardas': row[9],
-                    'Pavarde': row[10]
-                }
-            }
-            result.append(item)
-        
-        print("Processed data:", result)
-        cursor.close()
-        conn.close()
-        return jsonify(result)
-    except Exception as e:
-        print(f"Error in get_uzsakymo_detales: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/uzsakymo_detales/delete/<int:id>', methods=['DELETE'])
-def delete_uzsakymo_detale(id):
-    try:
-        print(f"Attempting to delete uzsakymo_detale {id}...")
-        conn = get_connection()
-        cursor = conn.cursor()
-        
-        # Check if the order exists
-        cursor.execute("""
-            SELECT * FROM uzsakymo_detales 
-            WHERE id_Uzsakymo = %s
-        """, (id,))
-        if not cursor.fetchone():
+        cursor = conn.cursor(dictionary=True)
+        try:
+            # Get form data
+            service_name = request.form['service_name']
+            gift_certificate = request.form['gift_certificate']
+            unit_price = float(request.form['unit_price'])
+            order_date = request.form['order_date']
+            price = float(request.form['price'])
+            status = request.form['status']
+            client_id = request.form['client_id']
+            
+            # Insert new order
+            cursor.execute("""
+                INSERT INTO uzsakymo_detales 
+                (Paslaugos_pavadinimas, Dovanu_cekis, Vieneto_kaina, Uzsakymo_data, Kaina, Busena, fk_Klientai_id_Klientas)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (service_name, gift_certificate, unit_price, order_date, price, status, client_id))
+            
+            # Get the ID of the newly created order
+            order_id = cursor.lastrowid
+            
+            # Handle products
+            product_ids = request.form.getlist('product_id[]')
+            product_quantities = request.form.getlist('product_quantity[]')
+            
+            for product_id, quantity in zip(product_ids, product_quantities):
+                if product_id and quantity:
+                    cursor.execute("""
+                        INSERT INTO uzsakytos_prekes 
+                        (Kiekis, fk_Prekes_id_Preke, fk_Uzsakymo_detales_id_Uzsakymo)
+                        VALUES (%s, %s, %s)
+                    """, (int(quantity), product_id, order_id))
+            
+            conn.commit()
+            flash('Užsakymas sėkmingai sukurtas!', 'success')
+            return redirect(url_for('uzsakymo_detales'))
+            
+        except Exception as e:
+            conn.rollback()
+            flash(f'Klaida kuriant užsakymą: {str(e)}', 'error')
+            return redirect(url_for('create_order'))
+        finally:
             cursor.close()
             conn.close()
-            return jsonify({'error': 'Užsakymo detalė nerasta'}), 404
+    
+    # GET request - show the form
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        # Get clients for the dropdown
+        cursor.execute("SELECT id_Klientas, CONCAT(Vardas, ' ', Pavarde) as Kliento_vardas FROM klientai")
+        clients = cursor.fetchall()
         
-        # Delete related ordered items first
-        cursor.execute("""
-            DELETE FROM uzsakytos_prekes 
-            WHERE fk_Uzsakymo_detales_id_Uzsakymo = %s
-        """, (id,))
+        # Get products for the dropdown
+        cursor.execute("SELECT id_Preke, Pavadinimas FROM prekes")
+        products = cursor.fetchall()
         
-        # Delete the order
-        cursor.execute("""
-            DELETE FROM uzsakymo_detales 
-            WHERE id_Uzsakymo = %s
-        """, (id,))
-        
-        conn.commit()
+        return render_template('create_order.html', clients=clients, products=products)
+    finally:
         cursor.close()
         conn.close()
-        
-        return jsonify({'message': 'Užsakymo detalė sėkmingai ištrinta'})
-    except Exception as e:
-        print(f"Error in delete_uzsakymo_detale: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
 
-@app.route('/uzsakymo_detales/<int:id>', methods=['PUT', 'OPTIONS'])
-def update_uzsakymo_detale(id):
-    if request.method == 'OPTIONS':
-        return '', 204
-        
-    try:
-        print(f"Attempting to update uzsakymo_detale {id}...")
-        data = request.get_json()
-        print("Received data:", data)
-        
-        # Validate required fields
-        required_fields = ['Prekes_pavadinimas', 'Paslaugos_pavadinimas', 'Dovanu_cekis', 
-                         'Vieneto_kaina', 'Uzsakymo_data', 'Kaina', 'Busena', 'fk_Klientai_id_Klientas']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({'error': f'Missing required field: {field}'}), 400
-        
-        conn = get_connection()
-        cursor = conn.cursor()
-        
-        # Check if the order exists
-        cursor.execute("""
-            SELECT * FROM uzsakymo_detales 
-            WHERE id_Uzsakymo = %s
-        """, (id,))
-        if not cursor.fetchone():
-            cursor.close()
-            conn.close()
-            return jsonify({'error': 'Užsakymo detalė nerasta'}), 404
-        
-        # Update the order
-        cursor.execute("""
+@app.route('/edit_order/<int:id>', methods=['GET', 'POST'])
+def edit_order(id):
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    
+    if request.method == 'POST':
+        try:
+            # Start transaction
+            conn.start_transaction()
+            
+            # Update order details
+            update_query = """
             UPDATE uzsakymo_detales 
-            SET Prekes_pavadinimas = %s,
-                Paslaugos_pavadinimas = %s,
+            SET Paslaugos_pavadinimas = %s,
                 Dovanu_cekis = %s,
                 Vieneto_kaina = %s,
                 Uzsakymo_data = %s,
@@ -466,489 +131,255 @@ def update_uzsakymo_detale(id):
                 Busena = %s,
                 fk_Klientai_id_Klientas = %s
             WHERE id_Uzsakymo = %s
-        """, (data['Prekes_pavadinimas'], data['Paslaugos_pavadinimas'], 
-              data['Dovanu_cekis'], data['Vieneto_kaina'], data['Uzsakymo_data'],
-              data['Kaina'], data['Busena'], data['fk_Klientai_id_Klientas'], id))
+            """
+            
+            cursor.execute(update_query, (
+                request.form.get('service_name'),
+                request.form.get('gift_certificate'),
+                request.form.get('unit_price'),
+                request.form.get('order_date'),
+                request.form.get('price'),
+                request.form.get('status'),
+                request.form.get('client_id'),
+                id
+            ))
+            
+            # Delete existing product relationships
+            cursor.execute("DELETE FROM uzsakytos_prekes WHERE fk_Uzsakymo_detales_id_Uzsakymo = %s", (id,))
+            
+            # Add new product relationships
+            product_ids = request.form.getlist('product_id[]')
+            product_quantities = request.form.getlist('product_quantity[]')
+            
+            for product_id, quantity in zip(product_ids, product_quantities):
+                if product_id and quantity:  # Only add if both product and quantity are provided
+                    cursor.execute("""
+                        INSERT INTO uzsakytos_prekes 
+                        (Kiekis, fk_Prekes_id_Preke, fk_Uzsakymo_detales_id_Uzsakymo)
+                        VALUES (%s, %s, %s)
+                    """, (int(quantity), product_id, id))
+            
+            conn.commit()
+            flash('Užsakymas sėkmingai atnaujintas!', 'success')
+            return redirect(url_for('uzsakymo_detales'))
+            
+        except Exception as e:
+            conn.rollback()
+            flash(f'Klaida atnaujinant užsakymą: {str(e)}', 'error')
+            return redirect(url_for('edit_order', id=id))
+    
+    # GET request - fetch order details
+    cursor.execute("""
+        SELECT * FROM uzsakymo_detales 
+        WHERE id_Uzsakymo = %s
+    """, (id,))
+    order = cursor.fetchone()
+    
+    # Get all clients for the dropdown
+    cursor.execute("SELECT id_Klientas, CONCAT(Vardas, ' ', Pavarde) as Kliento_vardas FROM klientai")
+    clients = cursor.fetchall()
+    
+    # Get all products for the dropdown
+    cursor.execute("SELECT id_Preke, Pavadinimas FROM prekes")
+    products = cursor.fetchall()
+    
+    # Get current product relationships
+    cursor.execute("""
+        SELECT up.*, p.Pavadinimas 
+        FROM uzsakytos_prekes up
+        JOIN prekes p ON up.fk_Prekes_id_Preke = p.id_Preke
+        WHERE up.fk_Uzsakymo_detales_id_Uzsakymo = %s
+    """, (id,))
+    current_products = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('edit_order.html', 
+                         order=order, 
+                         clients=clients, 
+                         products=products,
+                         current_products=current_products)
+
+@app.route('/delete_order/<int:id>', methods=['POST'])
+def delete_order(id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Start transaction
+        conn.start_transaction()
+        
+        # Delete related services first
+        cursor.execute("DELETE FROM uzsakytos_paslaugos WHERE fk_Uzsakymo_detales_id_Uzsakymo = %s", (id,))
+        
+        # Delete related products
+        cursor.execute("DELETE FROM uzsakytos_prekes WHERE fk_Uzsakymo_detales_id_Uzsakymo = %s", (id,))
+        
+        # Delete related gift certificates
+        cursor.execute("DELETE FROM uzsakyti_cekiai WHERE fk_Uzsakymo_detales_id_Uzsakymo = %s", (id,))
+        
+        # Delete the order
+        cursor.execute("DELETE FROM uzsakymo_detales WHERE id_Uzsakymo = %s", (id,))
         
         conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return jsonify({'message': 'Užsakymo detalė sėkmingai atnaujinta'})
+        flash('Užsakymas sėkmingai ištrintas!', 'success')
     except Exception as e:
-        print(f"Error in update_uzsakymo_detale: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        conn.rollback()
+        flash(f'Klaida ištrinant užsakymą: {str(e)}', 'error')
+    
+    cursor.close()
+    conn.close()
+    return redirect(url_for('uzsakymo_detales'))
 
-@app.route('/uzsakymo_detales/check')
-def check_uzsakymo_detales():
-    try:
-        conn = get_connection()
-        cursor = conn.cursor()
-        
-        # Check if table exists
-        cursor.execute("SHOW TABLES LIKE 'uzsakymo_detales'")
-        table_exists = cursor.fetchone() is not None
-        
-        if not table_exists:
-            return jsonify({'error': 'Table uzsakymo_detales does not exist'}), 404
-            
-        # Get table structure
-        cursor.execute("DESCRIBE uzsakymo_detales")
-        structure = cursor.fetchall()
-        
-        # Get row count
-        cursor.execute("SELECT COUNT(*) FROM uzsakymo_detales")
-        row_count = cursor.fetchone()[0]
-        
-        cursor.close()
-        conn.close()
-        
-        return jsonify({
-            'table_exists': True,
-            'row_count': row_count,
-            'structure': structure
-        })
-    except Exception as e:
-        print(f"Error checking table: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+@app.route('/ataskaita_filtrai')
+def ataskaita_filtrai():
+    return render_template('ataskaita_filtrai.html')
 
-@app.route('/klientai')
-def klientai():
-    return render_template('klientai.html')
+@app.route('/ataskaita', methods=['GET', 'POST'])
+def ataskaita():
+    # Get filter parameters
+    date_from = request.args.get('date_from', '') if request.method == 'GET' else request.form.get('date_from', '')
+    date_to = request.args.get('date_to', '') if request.method == 'GET' else request.form.get('date_to', '')
+    price_from = request.args.get('price_from', '') if request.method == 'GET' else request.form.get('price_from', '')
+    price_to = request.args.get('price_to', '') if request.method == 'GET' else request.form.get('price_to', '')
+    client_search = request.args.get('client_search', '') if request.method == 'GET' else request.form.get('client_search', '')
+    duration_from = request.args.get('duration_from', '') if request.method == 'GET' else request.form.get('duration_from', '')
+    duration_to = request.args.get('duration_to', '') if request.method == 'GET' else request.form.get('duration_to', '')
+    row_limit = request.args.get('row_limit', '') if request.method == 'GET' else request.form.get('row_limit', '')
+    sort_order = request.args.get('sort_order', '') if request.method == 'GET' else request.form.get('sort_order', '')
+      # Store filters for the template
+    filters = {
+        'date_from': date_from,
+        'date_to': date_to,
+        'price_from': price_from,
+        'price_to': price_to,
+        'client_search': client_search,
+        'duration_from': duration_from,
+        'duration_to': duration_to,
+        'row_limit': row_limit,
+        'sort_order': sort_order
+    }
+    conditions = []
+    parameters = []
 
-@app.route('/klientai/data')
-def get_klientai():
-    try:
-        print("Attempting to fetch klientai data...")
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM klientai")
-        rows = cursor.fetchall()
-        print(f"Fetched {len(rows)} rows from database")
-        
-        # Convert rows to list of dictionaries
-        data = []
-        for row in rows:
-            data.append({
-                'id_Klientas': row[0],
-                'Vardas': row[1],
-                'Pavarde': row[2],
-                'Gimimo_diena': row[3].strftime('%Y-%m-%d') if row[3] is not None else None,
-                'Telefono_numeris': row[4],
-                'Gyvenamoji_vieta': row[5],
-                'Pasto_kodas': row[6],
-                'Elektroninio_pasto_adresas': row[7]
-            })
-        
-        print("Processed data:", data)
-        cursor.close()
-        conn.close()
-        return jsonify(data)
-    except Exception as e:
-        print(f"Error fetching data: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+    if date_from:
+        conditions.append("uzsakymo_detales.Uzsakymo_data >= %s")
+        parameters.append(date_from)
+    if date_to:
+        conditions.append("uzsakymo_detales.Uzsakymo_data <= %s")
+        parameters.append(date_to)
+    if price_from:
+        conditions.append("uzsakymo_detales.Kaina >= %s")
+        parameters.append(price_from)
+    if price_to:
+        conditions.append("uzsakymo_detales.Kaina <= %s")
+        parameters.append(price_to)
+    if client_search:
+        conditions.append("CONCAT(klientai.Vardas, ' ', klientai.Pavarde) LIKE %s")
+        parameters.append(f"%{client_search}%")
+    if duration_from:
+        conditions.append("paslaugos.Trukme >= %s")
+        parameters.append(duration_from)
+    if duration_to:
+        conditions.append("paslaugos.Trukme <= %s")
+        parameters.append(duration_to)
+    if row_limit:
+        limit_condition = f"LIMIT {int(row_limit)}"
+    else:
+        limit_condition = ""
+    
+    if sort_order:
+        order_clause = f"ORDER BY sort_group ASC, CAST(Kaina AS Decimal) {sort_order}"
+    else:
+        order_clause = "ORDER BY sort_group ASC"
 
-@app.route('/klientai/delete/<int:id>', methods=['DELETE'])
-def delete_klientas(id):
-    try:
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM klientai WHERE id_Klientas = %s", (id,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return jsonify({'message': 'Klientas sėkmingai ištrintas'})
-    except Exception as e:
-        print(f"Error deleting data: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+    if conditions:
+        where_clause = "WHERE " + " AND ".join(conditions)
+    else:
+        where_clause = ""
 
-@app.route('/klientai/update/<int:id>', methods=['PUT', 'OPTIONS'])
-def update_klientas(id):
-    if request.method == 'OPTIONS':
-        return '', 200
-        
-    try:
-        data = request.get_json()
-            
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE klientai 
-            SET Vardas = %s,
-                Pavarde = %s,
-                Gimimo_diena = %s,
-                Telefono_numeris = %s,
-                Gyvenamoji_vieta = %s,
-                Pasto_kodas = %s,
-                Elektroninio_pasto_adresas = %s
-            WHERE id_Klientas = %s
-        """, (
-            data.get('Vardas'),
-            data.get('Pavarde'),
-            data.get('Gimimo_diena'),
-            data.get('Telefono_numeris'),
-            data.get('Gyvenamoji_vieta'),
-            data.get('Pasto_kodas'),
-            data.get('Elektroninio_pasto_adresas'),
-            id
-        ))
-        conn.commit()
-        cursor.close()
-        conn.close()
-        return jsonify({'message': 'Klientas sėkmingai atnaujintas'})
-    except Exception as e:
-        print(f"Error updating data: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
 
-@app.route('/klientai/nauja')
-def add_klientas_form():
-    return render_template('add_klientas.html')
+    query = f"""
+WITH suformatuota AS (
+    SELECT 
+        uzsakymo_detales.id_Uzsakymo, 
+        uzsakymo_detales.Uzsakymo_data, 
+        CAST(uzsakymo_detales.Kaina AS CHAR) AS Kaina, 
+        CONCAT(klientai.Vardas, ' ', klientai.Pavarde) AS Klientas, 
+        klientai.Gyvenamoji_vieta, 
+        CAST(uzsakytos_paslaugos.Kiekis AS CHAR) AS Kiekis, 
+        paslaugos.Pavadinimas AS Paslaugos_pavadinimas, 
+        CAST(paslaugos.Trukme AS CHAR) AS Trukme
+    FROM uzsakymo_detales 
+    INNER JOIN klientai 
+        ON uzsakymo_detales.fk_Klientai_id_Klientas = klientai.id_Klientas 
+    LEFT JOIN uzsakytos_paslaugos 
+        ON uzsakytos_paslaugos.fk_Uzsakymo_detales_id_Uzsakymo = uzsakymo_detales.id_Uzsakymo 
+    LEFT JOIN paslaugos 
+        ON paslaugos.id_Paslauga = uzsakytos_paslaugos.fk_Paslauga_id_Paslauga
+    {where_clause}
+),
 
-@app.route('/klientai/insert', methods=['POST'])
-def insert_klientas():
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'message': 'No JSON data received'}), 400
-            
-        conn = get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            INSERT INTO klientai (
-                Vardas, Pavarde, El_pastas, Telefonas, Adresas
-            ) VALUES (%s, %s, %s, %s, %s)
-        """, (
-            data['vardas'], data['pavarde'], data['el_pastas'],
-            data['telefonas'], data['adresas']
-        ))
-        
-        conn.commit()
-        last_id = cursor.lastrowid
-        
-        cursor.close()
-        conn.close()
-        return jsonify({'message': f'Klientas sėkmingai pridėtas! (ID: {last_id})'})
-        
-    except Exception as e:
-        print(f"Error in insert: {str(e)}")
-        return jsonify({'message': f'Server error: {str(e)}'}), 500
+suformatuota_limited AS (
+    SELECT *, 1 AS sort_group
+    FROM suformatuota
+    {order_clause}
+    {limit_condition}
+)
 
-@app.route('/uzsakymo_detales/nauja')
-def add_uzsakymo_detale_form():
-    return render_template('add_uzsakymo_detale.html')
+-- Main output and summary rows
+SELECT * FROM suformatuota_limited
 
-@app.route('/uzsakymo_detales/insert', methods=['POST'])
-def insert_uzsakymo_detale():
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'message': 'No JSON data received'}), 400
-            
-        conn = get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            INSERT INTO uzsakymo_detales (
-                Kiekis, fk_Prekes_id_Preke, fk_Uzsakymo_id_Uzsakymo
-            ) VALUES (%s, %s, %s)
-        """, (
-            data['kiekis'], data['fk_prekes_id'], data['fk_uzsakymo_id']
-        ))
-        
-        conn.commit()
-        last_id = cursor.lastrowid
-        
-        cursor.close()
-        conn.close()
-        return jsonify({'message': f'Užsakymo detalė sėkmingai pridėta! (ID: {last_id})'})
-        
-    except Exception as e:
-        print(f"Error in insert: {str(e)}")
-        return jsonify({'message': f'Server error: {str(e)}'}), 500
+UNION ALL
+SELECT '', '', '', '', '', '', '', '', 2
 
-@app.route('/uzsakytos_prekes/by_uzsakymas/<int:id>')
-def get_uzsakytos_prekes_by_uzsakymas(id):
-    try:
-        print(f"Attempting to fetch uzsakytos_prekes for uzsakymas {id}...")
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT * FROM uzsakytos_prekes 
-            WHERE fk_Uzsakymo_detales_id_Uzsakymo = %s
-        """, (id,))
-        rows = cursor.fetchall()
-        print(f"Fetched {len(rows)} rows from database")
-        
-        # Convert the rows to a list of dictionaries
-        result = []
-        for row in rows:
-            item = {
-                'id_Uzsakyta_preke': row[0],
-                'Tipas': row[1],
-                'Kiekis': row[2],
-                'fk_Prekes_id_Preke': row[3],
-                'fk_Uzsakymo_detales_id_Uzsakymo': row[4]
-            }
-            result.append(item)
-        
-        print("Processed data:", result)
-        cursor.close()
-        conn.close()
-        return jsonify(result)
-    except Exception as e:
-        print(f"Error in get_uzsakytos_prekes_by_uzsakymas: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+UNION ALL
+SELECT '', '', 'Kaina', '', '', 'Kiekis', '', 'Trukme', 3
 
-@app.route('/uzsakytos_prekes/view/<int:id>')
-def view_uzsakyta_preke(id):
-    try:
-        print(f"Attempting to fetch uzsakyta_preke {id}...")
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT * FROM uzsakytos_prekes 
-            WHERE id_Uzsakyta_preke = %s
-        """, (id,))
-        row = cursor.fetchone()
-        print(f"Fetched row: {row}")
-        
-        if row:
-            uzsakyta_preke = {
-                'id_Uzsakyta_preke': row[0],
-                'Tipas': row[1],
-                'Kiekis': row[2],
-                'fk_Prekes_id_Preke': row[3],
-                'fk_Uzsakymo_detales_id_Uzsakymo': row[4]
-            }
-            
-            cursor.close()
-            conn.close()
-            return jsonify(uzsakyta_preke)
-        else:
-            cursor.close()
-            conn.close()
-            return jsonify({'error': 'Užsakyta prekė nerasta'}), 404
-    except Exception as e:
-        print(f"Error in view_uzsakyta_preke: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+UNION ALL
+SELECT 'Viso:', '', 
+    CAST(SUM(CAST(Kaina AS DECIMAL)) AS CHAR), '', '', 
+    CAST(SUM(CAST(Kiekis AS DECIMAL)) AS CHAR), '', 
+    CAST(SUM(CAST(Trukme AS DECIMAL)) AS CHAR), 4
+FROM suformatuota_limited
 
-@app.route('/uzsakymo_detales/view/<int:order_id>', methods=['GET', 'OPTIONS'])
-def view_order_details(order_id):
-    if request.method == 'OPTIONS':
-        return '', 204
-    try:
-        print(f"Attempting to fetch order details for order {order_id}...")
-        conn = get_connection()
-        cursor = conn.cursor()
-        
-        # First, let's check the table structure
-        cursor.execute("DESCRIBE uzsakymo_detales")
-        columns = cursor.fetchall()
-        print("Table structure:", columns)
-        
-        # Then try to fetch the order
-        cursor.execute("SELECT * FROM uzsakymo_detales WHERE id_Uzsakymo = %s", (order_id,))
-        order = cursor.fetchone()
-        
-        if order:
-            order_data = {
-                'id_Uzsakymo': order[0],
-                'Prekes_pavadinimas': order[1],
-                'Paslaugos_pavadinimas': order[2],
-                'Dovanu_cekis': order[3],
-                'Vieneto_kaina': str(order[4]),
-                'Uzsakymo_data': order[5].strftime('%Y-%m-%d') if order[5] else None,
-                'Kaina': str(order[6]),
-                'Busena': order[7],
-                'fk_Klientai_id_Klientas': order[8]
-            }
-            print("Order details:", order_data)
-            return jsonify(order_data)
-        else:
-            return jsonify({'error': 'Užsakymas nerastas'}), 404
-    except Exception as e:
-        print(f"Error in view_order_details: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conn' in locals():
-            conn.close()
+UNION ALL
+SELECT 'Vidurkiai:', '', 
+    CAST(AVG(CAST(Kaina AS DECIMAL)) AS CHAR), '', '', 
+    CAST(AVG(CAST(Kiekis AS DECIMAL)) AS CHAR), '', 
+    CAST(AVG(CAST(Trukme AS DECIMAL)) AS CHAR), 5
+FROM suformatuota_limited
 
-@app.route('/uzsakymo_detales/by_klientas/<int:id>')
-def get_uzsakymo_detales_by_klientas(id):
-    try:
-        print(f"Attempting to fetch uzsakymo_detales for klientas {id}...")
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT * FROM uzsakymo_detales 
-            WHERE fk_Klientai_id_Klientas = %s
-        """, (id,))
-        rows = cursor.fetchall()
-        print(f"Fetched {len(rows)} rows from database")
-        
-        # Convert the rows to a list of dictionaries
-        result = []
-        for row in rows:
-            item = {
-                'id_Uzsakymo': row[0],
-                'Prekes_pavadinimas': row[1],
-                'Paslaugos_pavadinimas': row[2],
-                'Dovanu_cekis': row[3],
-                'Vieneto_kaina': row[4],
-                'Uzsakymo_data': row[5],
-                'Kaina': row[6],
-                'Busena': row[7],
-                'fk_Klientai_id_Klientas': row[8]
-            }
-            result.append(item)
-        
-        print("Processed data:", result)
-        cursor.close()
-        conn.close()
-        return jsonify(result)
-    except Exception as e:
-        print(f"Error in get_uzsakymo_detales_by_klientas: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+UNION ALL
+SELECT 'Maksimalus:', '', 
+    CAST(MAX(CAST(Kaina AS DECIMAL)) AS CHAR), '', '', 
+    CAST(MAX(CAST(Kiekis AS DECIMAL)) AS CHAR), '', 
+    CAST(MAX(CAST(Trukme AS DECIMAL)) AS CHAR), 6
+FROM suformatuota_limited
 
-@app.route('/uzsakymo_detales/edit/<int:id>')
-def edit_uzsakymo_detale(id):
-    try:
-        print(f"Attempting to fetch uzsakymo_detale {id}...")
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT * FROM uzsakymo_detales 
-            WHERE id_Uzsakymo = %s
-        """, (id,))
-        row = cursor.fetchone()
-        print(f"Fetched row: {row}")
-        
-        if row:
-            uzsakymo_detale = {
-                'id_Uzsakymo': row[0],
-                'Prekes_pavadinimas': row[1],
-                'Paslaugos_pavadinimas': row[2],
-                'Dovanu_cekis': row[3],
-                'Vieneto_kaina': row[4],
-                'Uzsakymo_data': row[5],
-                'Kaina': row[6],
-                'Busena': row[7],
-                'fk_Klientai_id_Klientas': row[8]
-            }
-            
-            cursor.close()
-            conn.close()
-            return render_template('uzsakymo_detales_edit.html', uzsakymo_detale=uzsakymo_detale)
-        else:
-            cursor.close()
-            conn.close()
-            return jsonify({'error': 'Užsakymo detalė nerasta'}), 404
-    except Exception as e:
-        print(f"Error in edit_uzsakymo_detale: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+UNION ALL
+SELECT 'Minimalus:', '', 
+    CAST(MIN(CAST(Kaina AS DECIMAL)) AS CHAR), '', '', 
+    CAST(MIN(CAST(Kiekis AS DECIMAL)) AS CHAR), '', 
+    CAST(MIN(CAST(Trukme AS DECIMAL)) AS CHAR), 7
+FROM suformatuota_limited
 
-@app.route('/uzsakymo_detales', methods=['POST'])
-def create_uzsakymo_detale():
-    try:
-        print("Attempting to create uzsakymo_detale...")
-        data = request.get_json()
-        print("Received data:", data)
-        
-        # Validate required fields
-        required_fields = ['Prekes_pavadinimas', 'Paslaugos_pavadinimas', 'Dovanu_cekis', 
-                         'Vieneto_kaina', 'Uzsakymo_data', 'Kaina', 'Busena', 'fk_Klientai_id_Klientas']
-        for field in required_fields:
-            if field not in data:
-                return jsonify({'error': f'Missing required field: {field}'}), 400
-        
-        conn = get_connection()
-        cursor = conn.cursor()
-        
-        # Insert the order
-        cursor.execute("""
-            INSERT INTO uzsakymo_detales (
-                Prekes_pavadinimas, Paslaugos_pavadinimas, Dovanu_cekis,
-                Vieneto_kaina, Uzsakymo_data, Kaina, Busena, fk_Klientai_id_Klientas
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            RETURNING id_Uzsakymo
-        """, (data['Prekes_pavadinimas'], data['Paslaugos_pavadinimas'], 
-              data['Dovanu_cekis'], data['Vieneto_kaina'], data['Uzsakymo_data'],
-              data['Kaina'], data['Busena'], data['fk_Klientai_id_Klientas']))
-        
-        new_id = cursor.fetchone()[0]
-        conn.commit()
-        cursor.close()
-        conn.close()
-        
-        return jsonify({
-            'message': 'Užsakymo detalė sėkmingai sukurta',
-            'id': new_id
-        })
-    except Exception as e:
-        print(f"Error in create_uzsakymo_detale: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+{order_clause};
 
-@app.route('/uzsakymo_detales/data/<int:order_id>', methods=['GET', 'OPTIONS'])
-def get_order_details(order_id):
-    if request.method == 'OPTIONS':
-        return '', 204
-    try:
-        print(f"Attempting to fetch order details for order {order_id}...")
-        conn = get_connection()
-        cursor = conn.cursor()
-        
-        # First, let's check the table structure
-        cursor.execute("DESCRIBE uzsakymo_detales")
-        columns = cursor.fetchall()
-        print("Table structure:", columns)
-        
-        # Then try to fetch the order
-        cursor.execute("SELECT * FROM uzsakymo_detales WHERE id_Uzsakymo = %s", (order_id,))
-        order = cursor.fetchone()
-        
-        if order:
-            order_data = {
-                'id_Uzsakymo': order[0],
-                'Prekes_pavadinimas': order[1],
-                'Paslaugos_pavadinimas': order[2],
-                'Dovanu_cekis': order[3],
-                'Vieneto_kaina': str(order[4]),
-                'Uzsakymo_data': order[5].strftime('%Y-%m-%d') if order[5] else None,
-                'Kaina': str(order[6]),
-                'Busena': order[7],
-                'fk_Klientai_id_Klientas': order[8]
-            }
-            print("Order details:", order_data)
-            return jsonify(order_data)
-        else:
-            return jsonify({'error': 'Užsakymas nerastas'}), 404
-    except Exception as e:
-        print(f"Error in get_order_details: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
-    finally:
-        if 'cursor' in locals():
-            cursor.close()
-        if 'conn' in locals():
-            conn.close()
+"""
+
+
+
+    cursor.execute(query, parameters)
+    results = cursor.fetchall()
+    
+    cursor.close()
+    conn.close()
+    
+    return render_template('ataskaita.html', report_data=results, filters=filters)
 
 if __name__ == '__main__':
     app.run(debug=True)
