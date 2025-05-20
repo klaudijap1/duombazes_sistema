@@ -123,11 +123,27 @@
                                 <tr>                                    {% for key, value in row.items() %}
                                         {% if key != 'sort_group' and key != 'id_Klientas' %}
                                             <td>
-                                                {% if value is number and key == "Bendra suma" or key == "Vnt. kaina" %}
-                                                    {{ "%.2f"|format(value) }} €
-                                                {% elif value is defined and key in ['Max_Kaina_Pagal_Klienta', 'Vid_Trukme_Pagal_Klienta', 'Kaina', 'Trukme'] and value is not none and value|string|length > 0 %}
-                                                    {{ "%.2f"|format(value|float) }}{% if key == 'Max_Kaina_Pagal_Klienta' or key == 'Kaina' %} €{% endif %}{% if key == 'Vid_Trukme_Pagal_Klienta' or key == 'Trukme' %} val.{% endif %}
-                                                {% elif value is defined %}
+                                                {% if (row.sort_group == 4 or row.sort_group == 5) and key in ['Max_Kaina_Pagal_Klienta', 'Vid_Trukme_Pagal_Klienta'] %}
+                                                    &nbsp;
+                                                {% elif row.sort_group == 3 %} {# Header row from SQL #}
+                                                    {{ value }}
+                                                {% elif key in ['Kaina', 'Max_Kaina_Pagal_Klienta'] %}
+                                                    {% if value is not none and value|string|trim != '' %}
+                                                        {{ "%.2f €"|format(value|float) }}
+                                                    {% elif value|string|trim == '' %}
+                                                        &nbsp;
+                                                    {% else %} {# value is None #}
+                                                        -
+                                                    {% endif %}
+                                                {% elif key in ['Trukme', 'Vid_Trukme_Pagal_Klienta'] %}
+                                                    {% if value is not none and value|string|trim != '' %}
+                                                        {{ "%.2f val."|format(value|float) }}
+                                                    {% elif value|string|trim == '' %}
+                                                        &nbsp;
+                                                    {% else %} {# value is None #}
+                                                        -
+                                                    {% endif %}
+                                                {% elif value is defined and value is not none %} {# For other columns like Kiekis, Data, etc. #}
                                                     {{ value }}
                                                 {% else %}
                                                     -
