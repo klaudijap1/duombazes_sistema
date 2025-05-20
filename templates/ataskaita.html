@@ -104,8 +104,16 @@
                     <table class="table table-striped table-hover">
                         <thead class="thead-dark">                            <tr>
                                 {% for key in report_data[0].keys() %}
-                                    {% if key != 'sort_group' %}
-                                        <th>{{ key }}</th>
+                                    {% if key != 'sort_group' and key != 'id_Klientas' %}
+                                        <th>
+                                            {% if key == 'Max_Kaina_Pagal_Klienta' %}
+                                                Maksimali kaina (pagal klientą)
+                                            {% elif key == 'Vid_Trukme_Pagal_Klienta' %}
+                                                Vidutinė trukmė (pagal klientą)
+                                            {% else %}
+                                                {{ key }}
+                                            {% endif %}
+                                        </th>
                                     {% endif %}
                                 {% endfor %}
                             </tr>
@@ -113,10 +121,12 @@
                         <tbody>
                             {% for row in report_data %}
                                 <tr>                                    {% for key, value in row.items() %}
-                                        {% if key != 'sort_group' %}
+                                        {% if key != 'sort_group' and key != 'id_Klientas' %}
                                             <td>
                                                 {% if value is number and key == "Bendra suma" or key == "Vnt. kaina" %}
                                                     {{ "%.2f"|format(value) }} €
+                                                {% elif value is defined and key in ['Max_Kaina_Pagal_Klienta', 'Vid_Trukme_Pagal_Klienta', 'Kaina', 'Trukme'] and value is not none and value|string|length > 0 %}
+                                                    {{ "%.2f"|format(value|float) }}{% if key == 'Max_Kaina_Pagal_Klienta' or key == 'Kaina' %} €{% endif %}{% if key == 'Vid_Trukme_Pagal_Klienta' or key == 'Trukme' %} val.{% endif %}
                                                 {% elif value is defined %}
                                                     {{ value }}
                                                 {% else %}

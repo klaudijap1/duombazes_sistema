@@ -290,9 +290,9 @@ def ataskaita():
         limit_condition = ""
     
     if sort_order:
-        order_clause = f"ORDER BY sort_group ASC, CAST(Kaina AS Decimal) {sort_order}"
+        order_clause = f"ORDER BY sort_group ASC, Klientas ASC, CAST(Kaina AS Decimal) {sort_order}"
     else:
-        order_clause = "ORDER BY sort_group ASC"
+        order_clause = "ORDER BY sort_group ASC, Klientas ASC"
 
     if conditions:
         where_clause = "WHERE " + " AND ".join(conditions)
@@ -309,6 +309,7 @@ WITH suformatuota AS (
         uzsakymo_detales.Uzsakymo_data, 
         CAST(uzsakymo_detales.Kaina AS CHAR) AS Kaina, 
         CONCAT(klientai.Vardas, ' ', klientai.Pavarde) AS Klientas, 
+        klientai.id_Klientas,
         klientai.Gyvenamoji_vieta, 
         CAST(uzsakytos_paslaugos.Kiekis AS CHAR) AS Kiekis, 
         paslaugos.Pavadinimas AS Paslaugos_pavadinimas, 
@@ -323,9 +324,36 @@ WITH suformatuota AS (
     {where_clause}
 ),
 
-suformatuota_limited AS (
-    SELECT *, 1 AS sort_group
+-- Calculate client statistics
+klientu_statistika AS (
+    SELECT 
+        id_Klientas,
+        CAST(MAX(CAST(Kaina AS DECIMAL(10,2))) AS CHAR) AS Max_Kaina,
+        CAST(AVG(CAST(Trukme AS DECIMAL(10,2))) AS CHAR) AS Avg_Trukme
     FROM suformatuota
+    GROUP BY id_Klientas
+),
+
+-- Join original data with statistics
+suformatuota_su_statistika AS (
+    SELECT 
+        s.id_Uzsakymo, 
+        s.Uzsakymo_data, 
+        s.Kaina, 
+        s.Klientas, 
+        s.Gyvenamoji_vieta, 
+        s.Kiekis, 
+        s.Paslaugos_pavadinimas, 
+        s.Trukme,
+        ks.Max_Kaina AS Max_Kaina_Pagal_Klienta,
+        ks.Avg_Trukme AS Vid_Trukme_Pagal_Klienta,
+        1 AS sort_group
+    FROM suformatuota s
+    LEFT JOIN klientu_statistika ks ON s.id_Klientas = ks.id_Klientas
+),
+
+suformatuota_limited AS (
+    SELECT * FROM suformatuota_su_statistika
     {order_clause}
     {limit_condition}
 )
@@ -334,44 +362,47 @@ suformatuota_limited AS (
 SELECT * FROM suformatuota_limited
 
 UNION ALL
-SELECT '', '', '', '', '', '', '', '', 2
+SELECT '', '', '', '', '', '', '', '', '', '', 2
 
 UNION ALL
-SELECT '', '', 'Kaina', '', '', 'Kiekis', '', 'Trukme', 3
+SELECT '', '', 'Kaina', '', '', 'Kiekis', '', 'Trukme', 'Max_Kaina', 'Vid_Trukme', 3
 
 UNION ALL
 SELECT 'Viso:', '', 
     CAST(SUM(CAST(Kaina AS DECIMAL)) AS CHAR), '', '', 
     CAST(SUM(CAST(Kiekis AS DECIMAL)) AS CHAR), '', 
-    CAST(SUM(CAST(Trukme AS DECIMAL)) AS CHAR), 4
+    CAST(SUM(CAST(Trukme AS DECIMAL)) AS CHAR), 
+    CAST(MAX(CAST(Max_Kaina_Pagal_Klienta AS DECIMAL)) AS CHAR),
+    CAST(AVG(CAST(Vid_Trukme_Pagal_Klienta AS DECIMAL)) AS CHAR), 4
 FROM suformatuota_limited
+WHERE sort_group = 1
 
 UNION ALL
 SELECT 'Vidurkiai:', '', 
     CAST(AVG(CAST(Kaina AS DECIMAL)) AS CHAR), '', '', 
     CAST(AVG(CAST(Kiekis AS DECIMAL)) AS CHAR), '', 
-    CAST(AVG(CAST(Trukme AS DECIMAL)) AS CHAR), 5
+    CAST(AVG(CAST(Trukme AS DECIMAL)) AS CHAR), '', '', 5
 FROM suformatuota_limited
+WHERE sort_group = 1
 
 UNION ALL
 SELECT 'Maksimalus:', '', 
     CAST(MAX(CAST(Kaina AS DECIMAL)) AS CHAR), '', '', 
     CAST(MAX(CAST(Kiekis AS DECIMAL)) AS CHAR), '', 
-    CAST(MAX(CAST(Trukme AS DECIMAL)) AS CHAR), 6
+    CAST(MAX(CAST(Trukme AS DECIMAL)) AS CHAR), '', '', 6
 FROM suformatuota_limited
+WHERE sort_group = 1
 
 UNION ALL
 SELECT 'Minimalus:', '', 
     CAST(MIN(CAST(Kaina AS DECIMAL)) AS CHAR), '', '', 
     CAST(MIN(CAST(Kiekis AS DECIMAL)) AS CHAR), '', 
-    CAST(MIN(CAST(Trukme AS DECIMAL)) AS CHAR), 7
+    CAST(MIN(CAST(Trukme AS DECIMAL)) AS CHAR), '', '', 7
 FROM suformatuota_limited
+WHERE sort_group = 1
 
-{order_clause};
-
+{order_clause}
 """
-
-
 
     cursor.execute(query, parameters)
     results = cursor.fetchall()
