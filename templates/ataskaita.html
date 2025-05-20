@@ -127,6 +127,8 @@
                                                     &nbsp;
                                                 {% elif row.sort_group == 3 %} {# Header row from SQL #}
                                                     {{ value }}
+                                                {% elif row.sort_group == 1 and key in ['Kiekis', 'Paslaugos_pavadinimas', 'Trukme'] and value is none %}
+                                                    NULL
                                                 {% elif key in ['Kaina', 'Max_Kaina_Pagal_Klienta'] %}
                                                     {% if value is not none and value|string|trim != '' %}
                                                         {{ "%.2f €"|format(value|float) }}

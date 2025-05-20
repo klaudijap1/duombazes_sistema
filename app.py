@@ -311,9 +311,9 @@ WITH suformatuota AS (
         CONCAT(klientai.Vardas, ' ', klientai.Pavarde) AS Klientas, 
         klientai.id_Klientas,
         klientai.Gyvenamoji_vieta, 
-        COALESCE(uzsakytos_paslaugos.Kiekis, 0) AS Kiekis, -- Kept as numeric, COALESCE for NULLs
-        paslaugos.Pavadinimas AS Paslaugos_pavadinimas, 
-        COALESCE(paslaugos.Trukme, 0.0) AS Trukme -- Kept as numeric, COALESCE for NULLs
+        uzsakytos_paslaugos.Kiekis AS Kiekis, -- Allow NULL
+        paslaugos.Pavadinimas AS Paslaugos_pavadinimas, -- Already allows NULL
+        paslaugos.Trukme AS Trukme -- Allow NULL
     FROM uzsakymo_detales 
     INNER JOIN klientai 
         ON uzsakymo_detales.fk_Klientai_id_Klientas = klientai.id_Klientas 
